@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HeroSection } from '../../components/hero-section/hero-section';
 import { FeaturesSection } from '../../components/features-section/features-section';
@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-landing-page',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, HeroSection, FeaturesSection, DownloadCta, RouterLink],
   template: `
     <div class="landing-page">

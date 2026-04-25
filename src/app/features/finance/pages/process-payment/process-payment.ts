@@ -9,17 +9,20 @@ import { PaymentSummary } from '../../components/payment-summary/payment-summary
 import { PaymentResponse } from '../../models/finance.model';
 import { PaymentRequest } from '@core/models/finance.model';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { PageHeaderComponent } from '@shared/ui';
+import { CreditCard } from 'lucide-angular';
 
 @Component({
   selector: 'app-process-payment-page',
   standalone: true,
-  imports: [CommonModule, PaymentForm, PaymentSummary, MatSnackBarModule],
+  imports: [CommonModule, PaymentForm, PaymentSummary, MatSnackBarModule, PageHeaderComponent],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <h1>Procesar Pago</h1>
-        <p>Genera la transacción para el servicio de asistencia mecánica.</p>
-      </header>
+      <app-page-header 
+        title="Procesar Pago" 
+        subtitle="Genera la transacción para el servicio de asistencia mecánica."
+        [icon]="cardIcon">
+      </app-page-header>
 
       <div class="payment-layout">
         @if (!processedPayment()) {
@@ -48,12 +51,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
       margin: 0 auto;
     }
 
-    .page-header {
-      margin-bottom: 2rem;
-      h1 { margin: 0; color: var(--sm-color-text-title); }
-      p { color: var(--sm-color-text-soft); }
-    }
-
     .card {
       position: relative;
       background: var(--sm-color-gunmetal-900);
@@ -79,6 +76,7 @@ export class ProcessPayment {
   private route = inject(ActivatedRoute);
   private financeService = inject(FinanceService);
   private snackBar = inject(MatSnackBar);
+  readonly cardIcon = CreditCard;
 
   incidentId = this.route.snapshot.queryParamMap.get('incidentId') || '';
   amount = Number(this.route.snapshot.queryParamMap.get('amount')) || 0;

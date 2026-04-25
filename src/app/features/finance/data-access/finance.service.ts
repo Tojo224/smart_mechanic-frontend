@@ -1,48 +1,53 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '@env/environment';
-import { Observable, map } from 'rxjs';
-import { FinancialSummary, PaymentCreate, PaymentResponse } from '../models/finance.model';
+import { Observable } from 'rxjs';
+
+export interface PaymentResponse {
+  id_pago: string;
+  id_incidente: string;
+  id_taller: string;
+  monto: number;
+  monto_comision: number;
+  estado_pago: string;
+  fecha_pago: string;
+}
+
+export interface PaymentCreate {
+  monto_total: number;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class FinanceService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/finance`;
+  private readonly API_URL = `${environment.apiUrl}/finance`;
 
   /**
-   * Obtiene el listado de pagos filtrado (CU19/CU25)
+   * Procesa el pago de una emergencia y cierra el caso.
    */
-  getFinancialReports(workshopId?: string): Observable<PaymentResponse[]> {
-    const params: any = {};
-    if (workshopId) params.workshop_id = workshopId;
-    return this.http.get<PaymentResponse[]>(`${this.apiUrl}/reports`, { params });
+  processPayment(incidentId: string, data: PaymentCreate): Observable<PaymentResponse> {
+    return this.http.post<PaymentResponse>(`${this.API_URL}/emergencies/${incidentId}/pay`, data);
   }
 
   /**
-   * Calcula el resumen financiero para el AdminTaller
+   * Obtiene reportes de pagos con filtros opcionales.
+   * Multi-tenant: AdminTaller solo verá los suyos.
    */
-  getDashboardSummary(): Observable<FinancialSummary> {
-    return this.getFinancialReports().pipe(
-      map(payments => {
-        const totalBruto = payments.reduce((acc, p) => acc + p.monto, 0);
-        const totalComision = payments.reduce((acc, p) => acc + p.monto_comision, 0);
-        
-        return {
-          ingresos_brutos: totalBruto,
-          comisiones_pagar: totalComision,
-          servicios_completados: payments.length,
-          recientes: payments.slice(0, 5)
-        };
-      })
-    );
+  getPayments(workshopId?: string): Observable<PaymentResponse[]> {
+    let params = new HttpParams();
+    if (workshopId) {
+      params = params.set('workshop_id', workshopId);
+    }
+    return this.http.get<PaymentResponse[]>(`${this.API_URL}/reports`, { params });
   }
 
   /**
-   * Procesa el pago y cierra el incidente (Fase 5)
+   * Estadísticas Financieras Agregadas (Simuladas basadas en los reportes)
    */
-  processPayment(incidentId: string, payment: PaymentCreate): Observable<PaymentResponse> {
-    return this.http.post<PaymentResponse>(`${this.apiUrl}/emergencies/${incidentId}/pay`, payment);
+  getFinancialStats() {
+    // Aquí podríamos tener un endpoint real en el backend, 
+    // pero por ahora lo calcularemos en el componente a partir de getPayments()
   }
 }

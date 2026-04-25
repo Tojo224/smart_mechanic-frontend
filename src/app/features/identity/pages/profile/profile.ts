@@ -1,18 +1,22 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { PageHeaderComponent, LoadingStateComponent } from '@shared/ui';
+import { User } from 'lucide-angular';
 import { ProfileForm } from '@features/identity/components/profile-form/profile-form';
 import { UserProfileUpdate, UserResponse } from '@core/models/identity.model';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, ProfileForm],
+  imports: [CommonModule, MatCardModule, PageHeaderComponent, ProfileForm, LoadingStateComponent],
   template: `
     <div class="page-container">
-      <div class="page-header">
-        <h2>Mi Perfil</h2>
-        <p>Administra tu información personal y datos de contacto.</p>
-      </div>
+      <app-page-header 
+        title="Mi Perfil" 
+        subtitle="Gestiona tu información personal y preferencias de seguridad."
+        [icon]="userIcon">
+      </app-page-header>
       
       <div class="card-container">
         @if (user()) {
@@ -21,29 +25,16 @@ import { UserProfileUpdate, UserResponse } from '@core/models/identity.model';
             (updateProfile)="onProfileUpdate($event)">
           </app-profile-form>
         } @else {
-          <div class="loading-state">Cargando perfil...</div>
+          <app-loading-state message="Cargando perfil..."></app-loading-state>
         }
       </div>
     </div>
   `,
   styles: [`
     .page-container {
-      padding: 24px;
+      padding: 2rem;
       max-width: 800px;
       margin: 0 auto;
-      font-family: 'Inter', sans-serif;
-    }
-    .page-header {
-      margin-bottom: 24px;
-      h2 {
-        margin: 0 0 8px;
-        color: var(--sm-color-text-title, #fff);
-        font-size: 24px;
-      }
-      p {
-        margin: 0;
-        color: var(--sm-color-text-soft, #ccc);
-      }
     }
     .card-container {
       background: var(--sm-color-gunmetal-850, #1c1f24);
@@ -51,15 +42,10 @@ import { UserProfileUpdate, UserResponse } from '@core/models/identity.model';
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    .loading-state {
-      padding: 40px;
-      text-align: center;
-      color: var(--sm-color-text-muted, #999);
-    }
   `]
 })
 export class Profile {
-  // TODO: Inject query for user profile data
+  readonly userIcon = User;
 
   // Mock initial data for UI building
   user = signal<UserResponse | null>({

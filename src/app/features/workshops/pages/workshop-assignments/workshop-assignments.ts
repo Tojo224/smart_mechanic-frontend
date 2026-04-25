@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect, ElementRef, ViewChild, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkshopsService } from '../../data-access/workshops.service';
@@ -10,29 +10,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { 
-  LucideAngularModule, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle, 
-  UserCheck, 
-  Timer,
-  Navigation,
-  MessageSquare,
-  Inbox,
-  Wrench,
-  CheckCircle,
-  Search,
-  Filter,
-  RefreshCw,
-  Phone,
-  User
-} from 'lucide-angular';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { FinanceService } from '@features/finance/data-access/finance.service';
+import { LucideAngularModule, ClipboardList, MapPin, Clock, CheckCircle, Search, Filter, RefreshCw, AlertTriangle, Eye, ChevronRight, User, CheckCircle2, UserCheck, Navigation, MessageSquare, Inbox, Wrench, Phone } from 'lucide-angular';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model';
 
 @Component({
   selector: 'app-workshop-assignments-page',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, 
     FormsModule,
@@ -42,245 +28,229 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
-    LucideAngularModule
+    MatDialogModule,
+    LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="kanban-page">
       <!-- Audio para alertas (Nuevas Solicitudes) -->
       <audio #alertSound src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
-      <header class="kanban-header">
-        <div class="header-content">
-          <div class="title-section">
-            <h1>
-              <lucide-icon [img]="wrenchIcon" [size]="24"></lucide-icon>
-              Tablero Operativo del Taller
-            </h1>
-            <p>Monitoreo y gestión de servicios de auxilio mecánico en tiempo real.</p>
-          </div>
-          
-          <div class="header-actions">
-            <div class="live-status">
-              <span class="pulse-dot"></span>
-              SISTEMA EN LÍNEA
-            </div>
-            <button mat-icon-button class="refresh-btn" (click)="assignmentsQuery.refetch()" matTooltip="Sincronizar ahora">
-              <lucide-icon [img]="refreshIcon" [size]="18"></lucide-icon>
+      <div class="page-container">
+        <app-page-header 
+          title="Asignaciones de Auxilio" 
+          subtitle="Gestiona los incidentes asignados a tu taller y el despacho de técnicos."
+          [icon]="assignmentsIcon">
+          <div actions>
+            <button mat-stroked-button class="refresh-btn" (click)="assignmentsQuery.refetch()">
+              <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
+              Actualizar
             </button>
           </div>
-        </div>
-      </header>
+        </app-page-header>
 
-      <!-- Barra de Filtros del Tablero -->
-      <div class="kanban-filters sm-glass-card">
-        <div class="search-box">
-          <lucide-icon [img]="searchIcon" [size]="16"></lucide-icon>
-          <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar por ID o descripción..." />
-        </div>
-        
-        <mat-form-field appearance="outline" class="filter-select">
-          <mat-label>Prioridad</mat-label>
-          <mat-select [(ngModel)]="filterPrioridad">
-            <mat-option value="">Todas</mat-option>
-            <mat-option value="ALTA">Alta</mat-option>
-            <mat-option value="MEDIA">Media</mat-option>
-            <mat-option value="BAJA">Baja</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <div class="board-stats">
-          <span class="stat"><b>{{ totalActivos() }}</b> Activos</span>
-          <span class="stat"><b>{{ filteredPending().length }}</b> Pendientes</span>
-        </div>
-      </div>
-
-      @if (assignmentsQuery.isPending() && !assignmentsQuery.data()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Conectando con el centro de mando...</p>
-        </div>
-      } @else {
-        <div class="kanban-board">
+        <!-- Barra de Filtros del Tablero -->
+        <div class="kanban-filters sm-glass-card">
+          <div class="search-box">
+            <lucide-icon [img]="searchIcon" [size]="16"></lucide-icon>
+            <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Buscar por ID o descripción..." />
+          </div>
           
-          <!-- COLUMNA: SOLICITUDES ENTRANTE -->
-          <div class="kanban-column incoming">
-            <div class="column-header">
-              <lucide-icon [img]="inboxIcon" [size]="18"></lucide-icon>
-              <h2>Solicitudes Nuevas</h2>
-              <span class="count">{{ filteredPending().length }}</span>
-            </div>
-            
-            <div class="column-content">
-              @for (inc of filteredPending(); track inc.id_incidente) {
-                <div class="kanban-card new-alert">
-                  <div class="card-priority" [attr.data-p]="inc.prioridad_incidente">
-                    {{ inc.prioridad_incidente }}
-                  </div>
-                  
-                  <div class="card-body">
-                    <div class="id-row">
-                      <span class="id-label">#{{ inc.id_incidente.substring(0,8) }}</span>
-                      <span class="time-ago">Recién llegado</span>
-                    </div>
-                    
-                    <div class="ia-summary">
-                      <div class="ia-header">
-                        <lucide-icon [img]="messageIcon" [size]="12"></lucide-icon>
-                        Resumen IA
-                      </div>
-                      <p>{{ inc.resumen_ia }}</p>
-                    </div>
+          <mat-form-field appearance="outline" class="filter-select">
+            <mat-label>Prioridad</mat-label>
+            <mat-select [ngModel]="filterPrioridad()" (ngModelChange)="filterPrioridad.set($event)">
+              <mat-option value="">Todas</mat-option>
+              <mat-option value="ALTA">Alta</mat-option>
+              <mat-option value="MEDIA">Media</mat-option>
+              <mat-option value="BAJA">Baja</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-                    <div class="client-info">
-                      <div class="info-item">
-                        <lucide-icon [img]="phoneIcon" [size]="12"></lucide-icon>
-                        {{ inc.telefono || 'Sin teléfono' }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="card-footer">
-                    <mat-form-field appearance="outline" class="full-width-select">
-                      <mat-select #techSelect placeholder="Asignar técnico...">
-                        @for (tech of techsQuery.data(); track tech.id_tecnico) {
-                          <mat-option [value]="tech.id_tecnico" [disabled]="!tech.estado">
-                            {{ tech.nombre }} {{ !tech.estado ? '(Ocupado)' : '' }}
-                          </mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                    
-                    <div class="action-buttons">
-                      <button mat-flat-button color="primary" 
-                              [disabled]="!techSelect.value || acceptMutation.isPending()"
-                              (click)="onAccept(inc.id_incidente, techSelect.value)">
-                        ACEPTAR
-                      </button>
-                      <button mat-button color="warn" (click)="onReject(inc.id_incidente)">
-                        RECHAZAR
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              } @empty {
-                <div class="empty-placeholder">
-                  <lucide-icon [img]="checkIcon" [size]="32"></lucide-icon>
-                  <p>Sin solicitudes pendientes</p>
-                </div>
-              }
-            </div>
+          <div class="board-stats">
+            <span class="stat"><b>{{ totalActivos() }}</b> Activos</span>
+            <span class="stat"><b>{{ filteredPending().length }}</b> Pendientes</span>
           </div>
-
-          <!-- COLUMNA: EN CAMINO -->
-          <div class="kanban-column on-way">
-            <div class="column-header">
-              <lucide-icon [img]="navigationIcon" [size]="18"></lucide-icon>
-              <h2>Técnico en Ruta</h2>
-              <span class="count">{{ filteredEnCamino().length }}</span>
-            </div>
-
-            <div class="column-content">
-              @for (inc of filteredEnCamino(); track inc.id_incidente) {
-                <div class="kanban-card border-blue">
-                  <div class="card-body">
-                    <div class="status-indicator">EN CAMINO</div>
-                    <p class="summary">{{ inc.resumen_ia }}</p>
-                    
-                    <div class="assigned-tech">
-                      <lucide-icon [img]="userIcon" [size]="12"></lucide-icon>
-                      <span>Técnico asignado</span>
-                    </div>
-                  </div>
-
-                  <div class="card-footer single-action">
-                    <button mat-stroked-button color="primary" (click)="onUpdateStatus(inc.id_incidente, 'EN_PROGRESO')">
-                      CONFIRMAR LLEGADA
-                    </button>
-                  </div>
-                </div>
-              } @empty {
-                <div class="empty-placeholder"><p>No hay técnicos en ruta</p></div>
-              }
-            </div>
-          </div>
-
-          <!-- COLUMNA: EN REPARACIÓN -->
-          <div class="kanban-column in-progress">
-            <div class="column-header">
-              <lucide-icon [img]="wrenchIcon" [size]="18"></lucide-icon>
-              <h2>En Reparación</h2>
-              <span class="count">{{ filteredInProgress().length }}</span>
-            </div>
-
-            <div class="column-content">
-              @for (inc of filteredInProgress(); track inc.id_incidente) {
-                <div class="kanban-card border-purple">
-                  <div class="card-body">
-                    <div class="status-indicator purple">TRABAJANDO...</div>
-                    <p class="summary">{{ inc.resumen_ia }}</p>
-                  </div>
-
-                  <div class="card-footer single-action">
-                    <button mat-flat-button color="accent" (click)="onUpdateStatus(inc.id_incidente, 'COMPLETADO')">
-                      FINALIZAR Y LIBERAR
-                    </button>
-                  </div>
-                </div>
-              } @empty {
-                <div class="empty-placeholder"><p>Sin trabajos activos en taller</p></div>
-              }
-            </div>
-          </div>
-
-          <!-- COLUMNA: FINALIZADOS HOY -->
-          <div class="kanban-column done">
-            <div class="column-header">
-              <lucide-icon [img]="doneIcon" [size]="18"></lucide-icon>
-              <h2>Completados</h2>
-              <span class="count">{{ filteredCompleted().length }}</span>
-            </div>
-
-            <div class="column-content">
-              @for (inc of filteredCompleted(); track inc.id_incidente) {
-                <div class="kanban-card card-done">
-                  <div class="card-body">
-                    <div class="done-check">
-                      <lucide-icon [img]="doneIcon" [size]="16"></lucide-icon>
-                      Servicio Finalizado
-                    </div>
-                    <p class="summary-muted">{{ inc.resumen_ia }}</p>
-                    <div class="date-tag">{{ inc.fecha_reporte | date:'shortTime' }}</div>
-                  </div>
-                </div>
-              } @empty {
-                <div class="empty-placeholder"><p>No hay cierres recientes</p></div>
-              }
-            </div>
-          </div>
-
         </div>
-      }
+
+        @if (assignmentsQuery.isLoading()) {
+          <app-loading-state message="Sincronizando órdenes de auxilio..."></app-loading-state>
+        } @else {
+          <div class="kanban-board">
+            
+            <!-- COLUMNA: SOLICITUDES ENTRANTE -->
+            <div class="kanban-column incoming">
+              <div class="column-header">
+                <lucide-icon [img]="inboxIcon" [size]="18"></lucide-icon>
+                <h2>Solicitudes Nuevas</h2>
+                <span class="count">{{ filteredPending().length }}</span>
+              </div>
+              
+              <div class="column-content">
+                @for (inc of filteredPending(); track inc.id_incidente) {
+                  <div class="kanban-card new-alert">
+                    <div class="card-priority" [attr.data-p]="inc.prioridad_incidente">
+                      {{ inc.prioridad_incidente }}
+                    </div>
+                    
+                    <div class="card-body">
+                      <div class="id-row">
+                        <span class="id-label">#{{ inc.id_incidente.substring(0,8) }}</span>
+                        <span class="time-ago">Recién llegado</span>
+                      </div>
+                      
+                      <div class="ia-summary">
+                        <div class="ia-header">
+                          <lucide-icon [img]="messageIcon" [size]="12"></lucide-icon>
+                          Resumen IA
+                        </div>
+                        <p>{{ inc.resumen_ia }}</p>
+                      </div>
+
+                      <div class="client-info">
+                        <div class="info-item">
+                          <lucide-icon [img]="phoneIcon" [size]="12"></lucide-icon>
+                          {{ inc.telefono || 'Sin teléfono' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card-footer">
+                      <mat-form-field appearance="outline" class="full-width-select">
+                        <mat-select #techSelect placeholder="Asignar técnico...">
+                          @for (tech of techsQuery.data(); track tech.id_tecnico) {
+                            <mat-option [value]="tech.id_tecnico" [disabled]="!tech.estado">
+                              {{ tech.nombre }} {{ !tech.estado ? '(Ocupado)' : '' }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      
+                      <div class="action-buttons">
+                        <button mat-flat-button color="primary" 
+                                [disabled]="!techSelect.value || acceptMutation.isPending()"
+                                (click)="onAccept(inc.id_incidente, techSelect.value)">
+                          ACEPTAR
+                        </button>
+                        <button mat-button color="warn" (click)="onReject(inc.id_incidente)">
+                          RECHAZAR
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                } @empty {
+                  <app-empty-state 
+                    [icon]="assignmentsIcon" 
+                    title="Sin solicitudes" 
+                    message="No hay incidentes pendientes en este momento.">
+                  </app-empty-state>
+                }
+              </div>
+            </div>
+
+            <!-- COLUMNA: EN CAMINO -->
+            <div class="kanban-column on-way">
+              <div class="column-header">
+                <lucide-icon [img]="navigationIcon" [size]="18"></lucide-icon>
+                <h2>Técnico en Ruta</h2>
+                <span class="count">{{ filteredEnCamino().length }}</span>
+              </div>
+
+              <div class="column-content">
+                @for (inc of filteredEnCamino(); track inc.id_incidente) {
+                  <div class="kanban-card border-blue">
+                    <div class="card-body">
+                      <div class="status-indicator">EN CAMINO</div>
+                      <p class="summary">{{ inc.resumen_ia }}</p>
+                      
+                      <div class="assigned-tech">
+                        <lucide-icon [img]="userIcon" [size]="12"></lucide-icon>
+                        <span>Técnico asignado</span>
+                      </div>
+                    </div>
+
+                    <div class="card-footer single-action">
+                      <button mat-stroked-button color="primary" (click)="onUpdateStatus(inc.id_incidente, 'EN_PROGRESO')">
+                        CONFIRMAR LLEGADA
+                      </button>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="empty-placeholder"><p>No hay técnicos en ruta</p></div>
+                }
+              </div>
+            </div>
+
+            <!-- COLUMNA: EN REPARACIÓN -->
+            <div class="kanban-column in-progress">
+              <div class="column-header">
+                <lucide-icon [img]="wrenchIcon" [size]="18"></lucide-icon>
+                <h2>En Reparación</h2>
+                <span class="count">{{ filteredInProgress().length }}</span>
+              </div>
+
+              <div class="column-content">
+                @for (inc of filteredInProgress(); track inc.id_incidente) {
+                  <div class="kanban-card border-purple">
+                    <div class="card-body">
+                      <div class="status-indicator purple">TRABAJANDO...</div>
+                      <p class="summary">{{ inc.resumen_ia }}</p>
+                    </div>
+
+                    <div class="card-footer single-action">
+                      <button mat-flat-button color="accent" (click)="onFinalizeService(inc.id_incidente)">
+                        FINALIZAR Y LIBERAR
+                      </button>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="empty-placeholder"><p>Sin trabajos activos en taller</p></div>
+                }
+              </div>
+            </div>
+
+            <!-- COLUMNA: FINALIZADOS HOY -->
+            <div class="kanban-column done">
+              <div class="column-header">
+                <lucide-icon [img]="doneIcon" [size]="18"></lucide-icon>
+                <h2>Completados</h2>
+                <span class="count">{{ filteredCompleted().length }}</span>
+              </div>
+
+              <div class="column-content">
+                @for (inc of filteredCompleted(); track inc.id_incidente) {
+                  <div class="kanban-card card-done">
+                    <div class="card-body">
+                      <div class="done-check">
+                        <lucide-icon [img]="doneIcon" [size]="16"></lucide-icon>
+                        Servicio Finalizado
+                      </div>
+                      <p class="summary-muted">{{ inc.resumen_ia }}</p>
+                      <div class="date-tag">{{ inc.fecha_reporte | date:'shortTime' }}</div>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="empty-placeholder"><p>No hay cierres recientes</p></div>
+                }
+              </div>
+            </div>
+
+          </div>
+        }
+      </div>
     </div>
   `,
   styles: [`
     .kanban-page { 
       height: calc(100vh - 64px); display: flex; flex-direction: column; background: #0b0f1a; 
     }
-
-    .kanban-header {
-      padding: 1rem 2rem; background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.05);
-      .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1800px; margin: 0 auto; width: 100%; }
-      h1 { margin: 0; font-size: 1.4rem; font-weight: 800; color: white; display: flex; align-items: center; gap: 0.75rem; }
-      p { margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--sm-color-text-soft); }
-    }
-
-    .header-actions { display: flex; align-items: center; gap: 1.5rem; }
-    .live-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 800; color: #2ecc71; background: rgba(46, 204, 113, 0.1); padding: 0.4rem 0.8rem; border-radius: 20px; }
-    .refresh-btn { color: var(--sm-color-text-muted); }
+    .page-container { padding: 2rem; max-width: 1800px; margin: 0 auto; animation: fadeIn 0.4s ease-out; display: flex; flex-direction: column; height: 100%; }
 
     /* Filtros */
     .kanban-filters {
-      margin: 1rem 1.5rem; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1.5rem;
+      margin: 1rem 0; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1.5rem;
       .search-box { display: flex; align-items: center; gap: 0.75rem; flex: 1; max-width: 400px; background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
         input { background: none; border: none; color: white; outline: none; font-size: 0.85rem; width: 100%; }
       }
@@ -290,7 +260,7 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
 
     /* Board */
     .kanban-board {
-      flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; padding: 0 1.5rem 1.5rem; overflow: hidden; max-width: 1800px; margin: 0 auto; width: 100%;
+      flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; overflow: hidden;
     }
 
     .kanban-column {
@@ -368,11 +338,6 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
 
     .empty-placeholder { padding: 3rem 1rem; text-align: center; color: var(--sm-color-text-muted); p { font-size: 0.75rem; margin-top: 0.5rem; } }
 
-    .pulse-dot { width: 6px; height: 6px; background: #2ecc71; border-radius: 50%; box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); animation: pulse 1.5s infinite; }
-    
-    .loading-state { padding: 8rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--sm-color-text-soft); }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(var(--sm-rgb-sapphire-400), 0.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
     @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
@@ -380,12 +345,15 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
 })
 export class WorkshopAssignments {
   private workshopsService = inject(WorkshopsService);
+  private financeService = inject(FinanceService);
   private snackBar = inject(MatSnackBar);
   private queryClient = injectQueryClient();
+  private dialog = inject(MatDialog);
   
   @ViewChild('alertSound') alertSound!: ElementRef<HTMLAudioElement>;
 
   // Iconos
+  protected readonly assignmentsIcon = ClipboardList;
   protected readonly alertIcon = AlertTriangle;
   protected readonly checkIcon = CheckCircle2;
   protected readonly userCheckIcon = UserCheck;
@@ -399,9 +367,9 @@ export class WorkshopAssignments {
   protected readonly phoneIcon = Phone;
   protected readonly userIcon = User;
 
-  // Filtros
-  searchQuery = '';
-  filterPrioridad = '';
+  // Filtros (Signals para reactividad)
+  searchQuery = signal('');
+  filterPrioridad = signal('');
 
   // Consultas
   assignmentsQuery = injectQuery(() => ({
@@ -416,12 +384,13 @@ export class WorkshopAssignments {
   }));
 
   // Lógica de Filtrado Local para el Board
-  private applyBaseFilters(data: any[]) {
+  private applyBaseFilters(data: IncidentResponse[]) {
     return data.filter(inc => {
-      const matchSearch = this.searchQuery ? 
-        (inc.id_incidente.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
-         inc.resumen_ia?.toLowerCase().includes(this.searchQuery.toLowerCase())) : true;
-      const matchPriority = this.filterPrioridad ? inc.prioridad_incidente === this.filterPrioridad : true;
+      const q = this.searchQuery().toLowerCase();
+      const matchSearch = q ? 
+        (inc.id_incidente.toLowerCase().includes(q) || 
+         inc.resumen_ia?.toLowerCase().includes(q)) : true;
+      const matchPriority = this.filterPrioridad() ? inc.prioridad_incidente === this.filterPrioridad() : true;
       return matchSearch && matchPriority;
     });
   }
@@ -493,6 +462,17 @@ export class WorkshopAssignments {
     }
   }));
 
+  paymentMutation = injectMutation(() => ({
+    mutationFn: (data: { id: string, amount: number }) => 
+      lastValueFrom(this.financeService.processPayment(data.id, { monto_total: data.amount })),
+    onSuccess: () => {
+      this.queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      this.queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      this.queryClient.invalidateQueries({ queryKey: ['financial-payments'] });
+      this.snackBar.open('✅ Servicio Finalizado y Pago Procesado', 'OK', { duration: 4000 });
+    }
+  }));
+
   onAccept(id: string, techId: string) {
     this.acceptMutation.mutate({ id, techId });
   }
@@ -505,5 +485,19 @@ export class WorkshopAssignments {
 
   onUpdateStatus(id: string, status: string) {
     this.statusMutation.mutate({ id, status });
+  }
+
+  async onFinalizeService(id: string) {
+    const { ProcessPaymentDialog } = await import('@features/finance/dialogs/process-payment-dialog.component');
+    const dialogRef = this.dialog.open(ProcessPaymentDialog, {
+      data: { incidentId: id },
+      width: '400px',
+      disableClose: true
+    });
+
+    const result = await lastValueFrom(dialogRef.afterClosed());
+    if (result) {
+      this.paymentMutation.mutate({ id, amount: result });
+    }
   }
 }

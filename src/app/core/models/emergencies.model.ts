@@ -31,5 +31,5 @@ export interface IncidentDetailResponse {
   resumen_ia: string | null;
   analisis_consolidado: string | null;
   fecha_reporte?: string;
-  evidencias: any[]; 
+  evidencias: EvidenceResponse[];
 }

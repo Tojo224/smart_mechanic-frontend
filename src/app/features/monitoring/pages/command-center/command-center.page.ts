@@ -1,15 +1,28 @@
-import { Component, inject, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, AfterViewInit, ElementRef, ViewChild, OnDestroy, PLATFORM_ID, effect } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MonitoringService } from '../../data-access/monitoring.service';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { LucideAngularModule, Activity, Users, DollarSign, AlertTriangle, Map as MapIcon, TrendingUp, Info } from 'lucide-angular';
 import { Chart, registerables } from 'chart.js';
-import * as L from 'leaflet';
-import 'leaflet.heat'; 
+import type * as L from 'leaflet';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { GlobalStats } from '../../models/monitoring.model';
+import { PageHeaderComponent, LoadingStateComponent } from '@shared/ui';
+
+type HeatPoint = [number, number, number?];
+type HeatLayerOptions = {
+  minOpacity?: number;
+  maxZoom?: number;
+  max?: number;
+  radius?: number;
+  blur?: number;
+  gradient?: Record<number, string>;
+};
+type LeafletWithHeat = typeof L & {
+  heatLayer: (latlngs: HeatPoint[], options?: HeatLayerOptions) => L.Layer;
+};
 
 Chart.register(...registerables);
 
@@ -19,28 +32,27 @@ Chart.register(...registerables);
   imports: [
     CommonModule,
     MatCardModule,
-    LucideAngularModule
+    LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>Centro de Mando</h1>
-          <p>Monitoreo estratégico de la red de asistencia y rendimiento del negocio en tiempo real.</p>
-        </div>
-        <div class="header-status">
-          <div class="live-indicator">
-            <span class="pulse-dot"></span>
-            INTELIGENCIA ACTIVA
+      <app-page-header 
+        title="Centro de Mando"
+        subtitle="Monitoreo estratégico de la red de asistencia y rendimiento del negocio en tiempo real.">
+        <div actions>
+          <div class="header-status">
+            <div class="live-indicator">
+              <span class="pulse-dot"></span>
+              INTELIGENCIA ACTIVA
+            </div>
           </div>
         </div>
-      </header>
+      </app-page-header>
 
       @if (statsQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando inteligencia de negocio...</p>
-        </div>
+        <app-loading-state message="Cargando inteligencia de negocio..."></app-loading-state>
       } @else if (statsQuery.data(); as stats) {
         <!-- Mini Stats -->
         <div class="mini-stats-grid">
@@ -113,10 +125,6 @@ Chart.register(...registerables);
   `,
   styles: [`
     .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; 
-      h1 { margin: 0; font-size: 1.8rem; font-weight: 800; color: var(--sm-color-text-title); } 
-      p { margin: 0.4rem 0 0; color: var(--sm-color-text-soft); } 
-    }
 
     .live-indicator { display: flex; align-items: center; gap: 0.6rem; background: rgba(var(--sm-rgb-sapphire-400), 0.1); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--sm-color-sapphire-400); letter-spacing: 0.05em; }
     .pulse-dot { width: 8px; height: 8px; background: var(--sm-color-sapphire-400); border-radius: 50%; box-shadow: 0 0 0 0 rgba(var(--sm-rgb-sapphire-400), 0.7); animation: pulse 1.5s infinite; }
@@ -160,9 +168,6 @@ Chart.register(...registerables);
       }
     }
 
-    .loading-state { padding: 10rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; color: var(--sm-color-text-soft); }
-    .spinner { width: 40px; height: 40px; border: 3px solid rgba(var(--sm-rgb-sapphire-400), 0.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(var(--sm-rgb-sapphire-400), 0.7); } 70% { box-shadow: 0 0 0 10px rgba(var(--sm-rgb-sapphire-400), 0); } 100% { box-shadow: 0 0 0 0 rgba(var(--sm-rgb-sapphire-400), 0); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -176,6 +181,9 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   @ViewChild('performanceChart') performanceChartRef!: ElementRef;
   private chart: Chart | null = null;
   private map: L.Map | null = null;
+
+  private L: typeof L | undefined;
+  private platformId = inject(PLATFORM_ID);
 
   readonly talleresIcon = Users;
   readonly incidentsIcon = Activity;
@@ -191,11 +199,13 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
     refetchInterval: 60000
   }));
 
-  ngAfterViewInit() {
-    toObservable(this.statsQuery.status).subscribe(qStatus => {
-      if (qStatus === 'success') {
+  constructor() {
+    // Usamos un efecto reactivo en lugar de una suscripción manual para inicializar componentes externos
+    effect(() => {
+      if (isPlatformBrowser(this.platformId) && this.statsQuery.status() === 'success') {
         const stats = this.statsQuery.data();
         if (stats) {
+          // Pequeño delay para asegurar que el view esté listo si es la primera carga
           setTimeout(() => {
             this.initChart(stats);
             this.initMap(stats);
@@ -203,6 +213,13 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
         }
       }
     });
+  }
+
+  async ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.L = await import('leaflet');
+      await import('leaflet.heat');
+    }
   }
 
   ngOnDestroy() {
@@ -276,24 +293,26 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   }
 
   private initMap(stats: GlobalStats) {
+    if (!this.L) return;
+    const leafletWithHeat = this.L as LeafletWithHeat;
+
     if (this.map) {
       this.map.remove();
       this.map = null;
     }
 
-    this.map = L.map('heatmap', {
+    this.map = this.L.map('heatmap', {
       zoomControl: false,
       scrollWheelZoom: false
     }).setView([-17.7833, -63.1821], 13); // Santa Cruz
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    this.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; CARTO'
     }).addTo(this.map);
 
-    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    this.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // @ts-ignore - Leaflet Heat plugin
-    L.heatLayer(stats.puntos_calor as any, {
+    leafletWithHeat.heatLayer(stats.puntos_calor, {
       radius: 30,
       blur: 20,
       maxZoom: 17,

@@ -1,9 +1,9 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { WorkshopsService } from '../../data-access/workshops.service';
-import { TecnicoResponse } from '@core/models/workshops.model';
+import { TecnicoCreate, TecnicoResponse } from '@core/models/workshops.model';
 import { injectQuery, injectMutation, injectQueryClient } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
@@ -17,11 +17,12 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
-import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, Search, X } from 'lucide-angular';
+import { LucideAngularModule, Users, UserPlus, Search, Filter, RefreshCw, Mail, Phone, Shield, Pencil, PowerOff, Power, X } from 'lucide-angular';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 @Component({
   selector: 'app-manage-team',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -38,22 +39,23 @@ import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, S
     MatSnackBarModule,
     MatChipsModule,
     LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>
-            <lucide-icon [img]="usersIcon" [size]="26"></lucide-icon>
-            CU14 – Gestionar Técnicos y Disponibilidad
-          </h1>
-          <p>Administra el personal técnico de tu taller para la asignación de incidentes.</p>
+      <app-page-header 
+        title="Gestión de Equipo" 
+        subtitle="Administra el personal técnico y administrativo de tu taller."
+        [icon]="usersIcon">
+        <div actions>
+          <button mat-flat-button color="primary" class="btn-add" (click)="openCreateForm()">
+            <lucide-icon [img]="userPlusIcon" [size]="18"></lucide-icon>
+            Nuevo Miembro
+          </button>
         </div>
-        <button mat-flat-button color="primary" class="btn-new" (click)="openCreateForm()">
-          <lucide-icon [img]="userPlusIcon" [size]="18"></lucide-icon>
-          Registrar Técnico
-        </button>
-      </header>
+      </app-page-header>
 
       <!-- Formulario de Crear / Editar -->
       @if (showForm()) {
@@ -117,10 +119,7 @@ import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, S
 
       <!-- Tabla -->
       @if (techsQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando equipo técnico...</p>
-        </div>
+        <app-loading-state message="Cargando equipo..."></app-loading-state>
       } @else if (techsQuery.isError()) {
         <div class="error-state sm-glass-card">❌ Error al cargar los técnicos.</div>
       } @else {
@@ -191,10 +190,11 @@ import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, S
           </table>
 
           @if (filteredTechs().length === 0) {
-            <div class="empty-state">
-              <lucide-icon [img]="usersIcon" [size]="40"></lucide-icon>
-              <p>No hay técnicos que coincidan con los filtros.</p>
-            </div>
+            <app-empty-state 
+              [icon]="usersIcon" 
+              title="Sin resultados" 
+              message="No hay miembros del equipo que coincidan con los filtros.">
+            </app-empty-state>
           }
 
           <mat-paginator
@@ -209,15 +209,7 @@ import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, S
     </div>
   `,
   styles: [`
-    .page-container { padding: 2rem; max-width: 1100px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
-
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;
-      h1 { margin: 0; font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; color: var(--sm-color-text-title); }
-      p { margin: 0.4rem 0 0; color: var(--sm-color-text-soft); font-size: 0.9rem; }
-    }
-
-    .btn-new { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; }
+    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
 
     /* Formulario */
     .form-overlay {
@@ -262,16 +254,13 @@ import { LucideAngularModule, Users, UserPlus, Phone, Pencil, PowerOff, Power, S
     .deactivate-btn lucide-icon { color: #e74c3c; }
     .activate-btn lucide-icon { color: #2ecc71; }
 
-    .loading-state { padding: 6rem; text-align: center; color: var(--sm-color-text-soft); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
     .error-state { padding: 2rem; text-align: center; color: #e74c3c; }
-    .empty-state { padding: 4rem; text-align: center; color: var(--sm-color-text-muted); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 
     mat-paginator { background: transparent; }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(var(--sm-rgb-sapphire-400), 0.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin 0.8s linear infinite; }
   `]
 })
 export class ManageTeamComponent {
@@ -298,7 +287,7 @@ export class ManageTeamComponent {
   pageSize    = 10;
   pageIndex   = 0;
 
-  techForm: FormGroup = this.fb.group({
+  techForm = this.fb.nonNullable.group({
     nombre:   ['', Validators.required],
     telefono: [''],
     email:    ['', Validators.email],
@@ -332,7 +321,7 @@ export class ManageTeamComponent {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   createMutation = injectMutation(() => ({
-    mutationFn: (data: any) => lastValueFrom(this.workshopsService.createTechnician(data)),
+    mutationFn: (data: TecnicoCreate) => lastValueFrom(this.workshopsService.createTechnician(data)),
     onSuccess: () => {
       this.snackBar.open('✅ Técnico registrado correctamente', 'Cerrar', { duration: 3000 });
       this.queryClient.invalidateQueries({ queryKey: ['technicians'] });
@@ -342,7 +331,7 @@ export class ManageTeamComponent {
   }));
 
   updateMutation = injectMutation(() => ({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<TecnicoCreate> }) =>
       lastValueFrom(this.workshopsService.updateTechnician(id, data)),
     onSuccess: () => {
       this.snackBar.open('✅ Técnico actualizado', 'Cerrar', { duration: 3000 });
@@ -387,12 +376,23 @@ export class ManageTeamComponent {
 
   onSubmit() {
     if (this.techForm.invalid) return;
+
+    const formData = this.techForm.getRawValue();
     const tech = this.editingTech();
+
     if (tech) {
-      const { nombre, telefono } = this.techForm.value;
-      this.updateMutation.mutate({ id: tech.id_tecnico, data: { nombre, telefono } });
+      const updatePayload: Partial<TecnicoCreate> = {
+        nombre: formData.nombre,
+        telefono: formData.telefono || undefined
+      };
+      this.updateMutation.mutate({ id: tech.id_tecnico, data: updatePayload });
     } else {
-      this.createMutation.mutate(this.techForm.value);
+      const createPayload: TecnicoCreate = {
+        nombre: formData.nombre,
+        telefono: formData.telefono || undefined,
+        email: formData.email || undefined
+      };
+      this.createMutation.mutate(createPayload);
     }
   }
 

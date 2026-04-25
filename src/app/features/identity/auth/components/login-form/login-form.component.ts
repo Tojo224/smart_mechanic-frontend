@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -18,9 +18,10 @@ export interface LoginCredentials {
 export class LoginFormComponent {
   @Output() onSubmitCredentials = new EventEmitter<LoginCredentials>();
 
+  private fb = inject(FormBuilder);
   public loginForm: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
     this.loginForm = this.fb.group({
       correo: ['', [Validators.required, Validators.email]],
       contrasena: ['', [Validators.required, Validators.minLength(6)]],

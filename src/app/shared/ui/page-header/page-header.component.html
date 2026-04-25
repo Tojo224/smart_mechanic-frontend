@@ -1,0 +1,17 @@
+<header class="page-header">
+  <div class="title-section">
+    <h1>
+      <ng-content select="[prefix]"></ng-content>
+      @if (icon()) {
+        <lucide-icon [img]="icon()!" [size]="28" class="title-icon"></lucide-icon>
+      }
+      {{ title() }}
+    </h1>
+    @if (subtitle()) {
+      <p>{{ subtitle() }}</p>
+    }
+  </div>
+  <div class="actions">
+    <ng-content select="[actions]"></ng-content>
+  </div>
+</header>

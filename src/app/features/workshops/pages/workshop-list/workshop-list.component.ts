@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkshopsService } from '../../data-access/workshops.service';
 import { injectQuery, injectMutation, injectQueryClient } from '@tanstack/angular-query-experimental';
@@ -8,12 +8,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { LucideAngularModule, Building2, MapPin, Phone, Mail, ExternalLink } from 'lucide-angular';
+import { LucideAngularModule, Building2, MapPin, Phone, Mail, ExternalLink, Plus } from 'lucide-angular';
+import { PageHeaderComponent } from '@shared/ui';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-workshop-list',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     MatTableModule,
@@ -21,22 +22,22 @@ import { Router } from '@angular/router';
     MatIconModule,
     MatChipsModule,
     MatTooltipModule,
-    LucideAngularModule
+    LucideAngularModule,
+    PageHeaderComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>Gestión de Empresas</h1>
-          <p>Supervisa y administra todos los talleres mecánicos afiliados a la plataforma.</p>
+      <app-page-header 
+        title="Talleres Afiliados" 
+        subtitle="Explora y gestiona la red de centros de asistencia mecánica."
+        [icon]="buildingIcon">
+        <div actions>
+          <button mat-flat-button color="primary" routerLink="/workshops/register">
+            <lucide-icon [img]="plusIcon" [size]="18"></lucide-icon>
+            Nuevo Taller
+          </button>
         </div>
-        <div class="stats-overview">
-          <div class="stat-card sm-glass-card">
-            <span class="stat-label">Total Talleres</span>
-            <span class="stat-value">{{ workshopsQuery.data()?.length || 0 }}</span>
-          </div>
-        </div>
-      </header>
+      </app-page-header>
 
       <div class="table-container sm-glass-card">
         @if (workshopsQuery.isLoading()) {
@@ -129,20 +130,7 @@ import { Router } from '@angular/router';
     </div>
   `,
   styles: [`
-    .page-container {
-      padding: 2rem;
-      animation: fadeIn 0.4s ease-out;
-    }
-
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 2rem;
-      
-      h1 { margin: 0; font-size: 1.8rem; color: var(--sm-color-text-title); }
-      p { margin: 0.5rem 0 0; color: var(--sm-color-text-soft); }
-    }
+    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
 
     .stat-card {
       padding: 1rem 1.5rem;
@@ -271,6 +259,7 @@ export class WorkshopListComponent {
   protected readonly mailIcon = Mail;
   protected readonly mapIcon = MapPin;
   protected readonly linkIcon = ExternalLink;
+  protected readonly plusIcon = Plus;
 
   displayedColumns: string[] = ['taller', 'contacto', 'ubicacion', 'estado', 'acciones'];
 

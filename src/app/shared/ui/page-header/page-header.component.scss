@@ -1,0 +1,46 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2.5rem;
+
+  .title-section {
+    .title-icon {
+      color: var(--sm-color-sapphire-400);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 800;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    p {
+      margin: 0.5rem 0 0;
+      color: var(--sm-color-text-soft);
+      font-size: 0.95rem;
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+
+    .actions {
+      justify-content: flex-start;
+    }
+  }
+}

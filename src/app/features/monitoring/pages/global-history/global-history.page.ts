@@ -13,6 +13,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-angular';
+import { IncidentDetailResponse } from '@core/models/emergencies.model';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 @Component({
   selector: 'app-global-history',
@@ -29,22 +31,23 @@ import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-
     MatSelectModule,
     MatButtonModule,
     LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>
-            <lucide-icon [img]="historyIcon" [size]="26"></lucide-icon>
-            {{ pageTitle() }}
-          </h1>
-          <p>{{ pageSubtitle() }}</p>
+      <app-page-header 
+        [title]="pageTitle()"
+        [subtitle]="pageSubtitle()"
+        [icon]="historyIcon">
+        <div actions>
+          <button mat-stroked-button class="refresh-btn" (click)="historyQuery.refetch()">
+            <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
+            Actualizar
+          </button>
         </div>
-        <button mat-stroked-button class="refresh-btn" (click)="historyQuery.refetch()">
-          <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
-          Actualizar
-        </button>
-      </header>
+      </app-page-header>
 
       <!-- Filtros -->
       <div class="filters-bar sm-glass-card">
@@ -97,10 +100,7 @@ import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-
 
       <!-- Tabla -->
       @if (historyQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando historial...</p>
-        </div>
+        <app-loading-state message="Cargando historial..."></app-loading-state>
       } @else if (historyQuery.isError()) {
         <div class="error-state sm-glass-card">❌ No se pudo cargar el historial.</div>
       } @else {
@@ -174,10 +174,11 @@ import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-
           </table>
 
           @if (filteredData().length === 0) {
-            <div class="empty-state">
-              <lucide-icon [img]="historyIcon" [size]="40"></lucide-icon>
-              <p>No hay registros que coincidan con los filtros aplicados.</p>
-            </div>
+            <app-empty-state 
+              [icon]="historyIcon" 
+              title="Sin registros" 
+              message="No hay registros que coincidan con los filtros aplicados.">
+            </app-empty-state>
           }
 
           <!-- Paginador DINÁMICO -->
@@ -195,12 +196,6 @@ import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-
   `,
   styles: [`
     .page-container { padding: 2rem; max-width: 1300px; margin: 0 auto; }
-
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;
-      h1 { margin: 0; font-size: 1.7rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; color: var(--sm-color-text-title); }
-      p { margin: 0.4rem 0 0; color: var(--sm-color-text-soft); font-size: 0.9rem; }
-    }
 
     .refresh-btn { display: flex; align-items: center; gap: 0.5rem; border-color: rgba(var(--sm-rgb-sapphire-400), 0.3); color: var(--sm-color-sapphire-400); }
 
@@ -244,14 +239,11 @@ import { LucideAngularModule, History, Search, Filter, RefreshCw } from 'lucide-
     .assigned-badge   { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; background: rgba(46,204,113,0.1); color: #2ecc71; font-weight: 600; }
     .unassigned-badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; background: rgba(var(--sm-rgb-slate-400),0.1); color: var(--sm-color-text-muted); }
 
-    .loading-state { padding: 6rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--sm-color-text-soft); }
     .error-state { padding: 2rem; text-align: center; color: #e74c3c; }
-    .empty-state { padding: 4rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--sm-color-text-muted); }
 
     mat-paginator { background: transparent; }
 
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(var(--sm-rgb-sapphire-400), 0.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin 0.8s linear infinite; }
   `]
 })
 export class GlobalHistoryPage {
@@ -296,25 +288,25 @@ export class GlobalHistoryPage {
 
   // ── Filtrado reactivo ──────────────────────────────────────────────────────
   filteredData = computed(() => {
-    let data = (this.historyQuery.data() as any[]) ?? [];
+    let data = (this.historyQuery.data() as IncidentDetailResponse[]) ?? [];
 
     if (this.searchId) {
       const q = this.searchId.toLowerCase();
-      data = data.filter((h: any) => h.id_incidente?.toLowerCase().includes(q));
+      data = data.filter((h: IncidentDetailResponse) => h.id_incidente?.toLowerCase().includes(q));
     }
     if (this.filterEstado) {
-      data = data.filter((h: any) => h.estado_incidente === this.filterEstado);
+      data = data.filter((h: IncidentDetailResponse) => h.estado_incidente === this.filterEstado);
     }
     if (this.filterPrioridad) {
-      data = data.filter((h: any) => h.prioridad_incidente === this.filterPrioridad);
+      data = data.filter((h: IncidentDetailResponse) => h.prioridad_incidente === this.filterPrioridad);
     }
     if (this.filterFechaInicio) {
       const desde = new Date(this.filterFechaInicio).getTime();
-      data = data.filter((h: any) => new Date(h.fecha_reporte).getTime() >= desde);
+      data = data.filter((h: IncidentDetailResponse) => h.fecha_reporte ? new Date(h.fecha_reporte).getTime() >= desde : true);
     }
     if (this.filterFechaFin) {
       const hasta = new Date(this.filterFechaFin + 'T23:59:59').getTime();
-      data = data.filter((h: any) => new Date(h.fecha_reporte).getTime() <= hasta);
+      data = data.filter((h: IncidentDetailResponse) => h.fecha_reporte ? new Date(h.fecha_reporte).getTime() <= hasta : true);
     }
 
     return data;

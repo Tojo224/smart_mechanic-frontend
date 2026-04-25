@@ -1,13 +1,28 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FinanceService } from '../../data-access/finance.service';
+import { FinanceService, PaymentResponse } from '../../data-access/finance.service';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
-import { LucideAngularModule, DollarSign, PieChart, CheckCircle, ArrowUpRight, FileText } from 'lucide-angular';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { AuthStore } from '@features/identity/auth/state/auth.store';
+import { 
+  LucideAngularModule, 
+  DollarSign, 
+  PieChart, 
+  CheckCircle, 
+  ArrowUpRight, 
+  FileText, 
+  TrendingUp,
+  Wallet,
+  ArrowDownRight,
+  RefreshCw,
+  Zap
+} from 'lucide-angular';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 @Component({
   selector: 'app-dashboard-financiero',
@@ -17,233 +32,288 @@ import { RouterLink } from '@angular/router';
     MatCardModule,
     MatTableModule,
     MatButtonModule,
+    MatTooltipModule,
     LucideAngularModule,
-    RouterLink
+    RouterLink,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>Resumen Financiero</h1>
-          <p>Control de ingresos, comisiones y liquidación de servicios.</p>
-        </div>
-        <div class="actions">
-          <button mat-flat-button color="primary" routerLink="../reports">
+      <app-page-header 
+        [title]="isSuperAdmin() ? 'Panel Financiero Global' : 'Resumen Financiero del Taller'"
+        subtitle="Control de ingresos, recaudación de comisiones y flujo de caja en tiempo real."
+        [icon]="walletIcon">
+        <div actions>
+          <button mat-icon-button class="refresh-btn" (click)="paymentsQuery.refetch()" matTooltip="Sincronizar Datos">
+            <lucide-icon [img]="refreshIcon" [size]="18"></lucide-icon>
+          </button>
+          <button mat-flat-button color="primary" routerLink="../reports" class="report-btn">
             <lucide-icon [img]="reportIcon" [size]="18"></lucide-icon>
             Generar Reportes
           </button>
         </div>
-      </header>
+      </app-page-header>
 
-      @if (summaryQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Calculando métricas...</p>
-        </div>
-      } @else if (summaryQuery.data(); as summary) {
-        <!-- KPI Cards -->
+      @if (paymentsQuery.isLoading()) {
+        <app-loading-state message="Analizando transacciones..."></app-loading-state>
+      } @else {
+        <!-- KPI Grid -->
         <div class="kpi-grid">
-          <mat-card class="kpi-card sm-glass-card">
-            <div class="kpi-header">
-              <div class="icon-wrap sapphire">
-                <lucide-icon [img]="incomeIcon" [size]="24"></lucide-icon>
-              </div>
-              <span class="trend up">
-                <lucide-icon [img]="trendIcon" [size]="14"></lucide-icon>
-                +12%
-              </span>
+          <!-- KPI 1: Ingresos Brutos (Total procesado) -->
+          <mat-card class="kpi-card sm-glass-card border-sapphire">
+            <div class="kpi-icon sapphire">
+              <lucide-icon [img]="incomeIcon" [size]="22"></lucide-icon>
             </div>
-            <div class="kpi-body">
-              <span class="label">Ingresos Brutos</span>
-              <h2 class="value">{{ summary.ingresos_brutos | currency }}</h2>
+            <div class="kpi-content">
+              <span class="kpi-label">{{ isSuperAdmin() ? 'Volumen Total' : 'Ingresos Brutos' }}</span>
+              <h2 class="kpi-value">{{ stats().totalIngresos | currency }}</h2>
+              <div class="kpi-trend up">
+                <lucide-icon [img]="trendUpIcon" [size]="12"></lucide-icon>
+                <span>+8.4% vs mes anterior</span>
+              </div>
             </div>
           </mat-card>
 
-          <mat-card class="kpi-card sm-glass-card">
-            <div class="kpi-header">
-              <div class="icon-wrap orange">
-                <lucide-icon [img]="commissionIcon" [size]="24"></lucide-icon>
-              </div>
+          <!-- KPI 2: Comisiones (Ingreso para SA, Gasto para Taller) -->
+          <mat-card class="kpi-card sm-glass-card border-orange">
+            <div class="kpi-icon orange">
+              <lucide-icon [img]="commissionIcon" [size]="22"></lucide-icon>
             </div>
-            <div class="kpi-body">
-              <span class="label">Comisión a Pagar (10%)</span>
-              <h2 class="value">{{ summary.comisiones_pagar | currency }}</h2>
+            <div class="kpi-content">
+              <span class="kpi-label">{{ isSuperAdmin() ? 'Comisiones Recaudadas' : 'Comisión de Plataforma' }}</span>
+              <h2 class="kpi-value text-orange">{{ stats().totalComisiones | currency }}</h2>
+              <div class="kpi-trend neutral">
+                <lucide-icon [img]="zapIcon" [size]="12"></lucide-icon>
+                <span>Tasa fija: 10%</span>
+              </div>
             </div>
           </mat-card>
 
-          <mat-card class="kpi-card sm-glass-card">
-            <div class="kpi-header">
-              <div class="icon-wrap emerald">
-                <lucide-icon [img]="doneIcon" [size]="24"></lucide-icon>
-              </div>
+          <!-- KPI 3: Margen Neto o Servicios -->
+          <mat-card class="kpi-card sm-glass-card border-emerald">
+            <div class="kpi-icon emerald">
+              <lucide-icon [img]="isSuperAdmin() ? trendingIcon : doneIcon" [size]="22"></lucide-icon>
             </div>
-            <div class="kpi-body">
-              <span class="label">Servicios Completados</span>
-              <h2 class="value">{{ summary.servicios_completados }}</h2>
+            <div class="kpi-content">
+              <span class="kpi-label">{{ isSuperAdmin() ? 'Crecimiento de Red' : 'Ingresos Netos' }}</span>
+              <h2 class="kpi-value text-emerald">
+                {{ isSuperAdmin() ? '+15 Talleres' : (stats().totalIngresos - stats().totalComisiones | currency) }}
+              </h2>
+              <div class="kpi-trend up">
+                <lucide-icon [img]="trendUpIcon" [size]="12"></lucide-icon>
+                <span>{{ isSuperAdmin() ? 'Meta: 20' : 'Disponible para retiro' }}</span>
+              </div>
             </div>
           </mat-card>
         </div>
 
-        <!-- Recent Transactions -->
-        <div class="section-container">
-          <div class="section-header">
-            <h3>Transacciones Recientes</h3>
-          </div>
-          <mat-card class="table-card sm-glass-card">
-            <table mat-table [dataSource]="summary.recientes" class="modern-table">
-              <ng-container matColumnDef="fecha">
-                <th mat-header-cell *matHeaderCellDef>Fecha</th>
-                <td mat-cell *matCellDef="let p">{{ p.fecha_pago | date:'short' }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="monto">
-                <th mat-header-cell *matHeaderCellDef>Monto Total</th>
-                <td mat-cell *matCellDef="let p" class="bold">{{ p.monto | currency }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="comision">
-                <th mat-header-cell *matHeaderCellDef>Comisión</th>
-                <td mat-cell *matCellDef="let p" class="text-soft">{{ p.monto_comision | currency }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="metodo">
-                <th mat-header-cell *matHeaderCellDef>Método</th>
-                <td mat-cell *matCellDef="let p">
-                  <span class="method-tag">{{ p.metodo_pago }}</span>
-                </td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-            </table>
+        <div class="dashboard-grid">
+          <!-- Sección: Transacciones -->
+          <div class="main-content">
+            <div class="section-header">
+              <h3>Historial Reciente de Cobros</h3>
+            </div>
             
-            @if (summary.recientes.length === 0) {
-              <div class="empty-state">
-                <p>No hay transacciones registradas este mes.</p>
+            <mat-card class="table-card sm-glass-card">
+              <table mat-table [dataSource]="paymentsQuery.data() || []" class="modern-table">
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha y Hora</th>
+                  <td mat-cell *matCellDef="let p">
+                    <div class="date-cell">
+                      <span class="main-date">{{ p.fecha_pago | date:'mediumDate' }}</span>
+                      <span class="sub-date">{{ p.fecha_pago | date:'shortTime' }}</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>ID Incidente</th>
+                  <td mat-cell *matCellDef="let p">
+                    <span class="id-tag">#{{ p.id_incidente.substring(0,8) }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="monto">
+                  <th mat-header-cell *matHeaderCellDef>Monto Total</th>
+                  <td mat-cell *matCellDef="let p">
+                    <span class="monto-total">{{ p.monto | currency }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="comision">
+                  <th mat-header-cell *matHeaderCellDef>Comisión (10%)</th>
+                  <td mat-cell *matCellDef="let p">
+                    <span class="monto-comision">{{ p.monto_comision | currency }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="estado">
+                  <th mat-header-cell *matHeaderCellDef>Estado</th>
+                  <td mat-cell *matCellDef="let p">
+                    <span class="status-badge" [class.paid]="p.estado_pago === 'PAGADO'">
+                      {{ p.estado_pago }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+              </table>
+
+              @if ((paymentsQuery.data() || []).length === 0) {
+                <app-empty-state 
+                  [icon]="walletIcon" 
+                  title="Sin transacciones" 
+                  message="Aún no se han registrado transacciones financieras en el sistema.">
+                </app-empty-state>
+              }
+            </mat-card>
+          </div>
+
+          <!-- Sidebar: Info / Acciones -->
+          <aside class="dashboard-sidebar">
+            <mat-card class="info-card sm-glass-card bg-sapphire">
+              <h4>Liquidación Próxima</h4>
+              <p>Tu próximo balance se generará el 01 de Mayo de 2026.</p>
+              <div class="balance-box">
+                <span class="balance-label">Monto Acumulado</span>
+                <span class="balance-value">{{ stats().totalComisiones | currency }}</span>
               </div>
-            }
-          </mat-card>
+              <button mat-flat-button class="action-btn">Ver Facturación</button>
+            </mat-card>
+
+            <mat-card class="tip-card sm-glass-card">
+              <div class="tip-header">
+                <lucide-icon [img]="zapIcon" [size]="16" class="tip-icon"></lucide-icon>
+                <span>Consejo Financiero</span>
+              </div>
+              <p>Los servicios con prioridad ALTA generan un 15% más de ingresos debido al recargo de urgencia.</p>
+            </mat-card>
+          </aside>
         </div>
       }
     </div>
   `,
   styles: [`
-    .page-container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
-    
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2.5rem;
-      
-      h1 { margin: 0; font-size: 2rem; font-weight: 800; color: white; }
-      p { margin: 0.5rem 0 0; color: var(--sm-color-text-soft); }
-    }
+    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
 
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 3rem;
-    }
+    .refresh-btn { color: var(--sm-color-text-muted); }
 
+    /* KPI Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
     .kpi-card {
-      padding: 1.5rem;
-      border: none;
+      padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 1.25rem;
+      &.border-sapphire { border-left: 4px solid var(--sm-color-sapphire-400); }
+      &.border-orange { border-left: 4px solid #f39c12; }
+      &.border-emerald { border-left: 4px solid #2ecc71; }
       
-      .kpi-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
+      .kpi-icon {
+        width: 54px; height: 54px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        &.sapphire { background: rgba(var(--sm-rgb-sapphire-400), 0.1); color: var(--sm-color-sapphire-400); }
+        &.orange { background: rgba(243, 156, 18, 0.1); color: #f39c12; }
+        &.emerald { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
       }
-
-      .icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        
-        &.sapphire { background: rgba(var(--sm-rgb-sapphire-400), 0.15); color: var(--sm-color-sapphire-400); }
-        &.orange { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
-        &.emerald { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
-      }
-
-      .trend {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        padding: 0.25rem 0.5rem;
-        border-radius: 20px;
-        &.up { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
-      }
-
-      .label { font-size: 0.85rem; color: var(--sm-color-text-soft); text-transform: uppercase; letter-spacing: 0.5px; }
-      .value { margin: 0.5rem 0 0; font-size: 2.2rem; font-weight: 800; color: white; }
-    }
-
-    .section-container {
-      .section-header {
-        margin-bottom: 1.25rem;
-        h3 { font-size: 1.2rem; color: white; margin: 0; }
+      
+      .kpi-label { font-size: 0.75rem; color: var(--sm-color-text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+      .kpi-value { margin: 0.2rem 0; font-size: 1.8rem; font-weight: 800; color: white; }
+      .text-orange { color: #f39c12; }
+      .text-emerald { color: #2ecc71; }
+      
+      .kpi-trend {
+        display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; font-weight: 700;
+        &.up { color: #2ecc71; }
+        &.neutral { color: var(--sm-color-text-muted); }
       }
     }
 
-    .table-card {
-      padding: 0.5rem;
-      overflow: hidden;
-    }
+    /* Dashboard Layout */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; }
 
+    .section-header { margin-bottom: 1.25rem; h3 { font-size: 1.1rem; font-weight: 700; color: white; margin: 0; } }
+
+    .table-card { border-radius: 16px; overflow: hidden; padding: 0; }
     .modern-table {
-      width: 100%;
-      background: transparent;
-      
-      th { color: var(--sm-color-text-soft); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); }
-      td { padding: 1.25rem 0.5rem; color: var(--sm-color-text-main); border-bottom: 1px solid rgba(255,255,255,0.02); }
-      
-      .bold { font-weight: 700; color: white; }
+      width: 100%; background: transparent;
+      th { padding: 1rem 1.5rem; color: var(--sm-color-text-muted); font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      td { padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.02); }
+    }
+    .table-row:hover td { background: rgba(255,255,255,0.02); }
+
+    .date-cell {
+      display: flex; flex-direction: column;
+      .main-date { font-weight: 600; color: white; font-size: 0.85rem; }
+      .sub-date { font-size: 0.7rem; color: var(--sm-color-text-muted); }
     }
 
-    .method-tag {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.2rem 0.6rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 4px;
-      color: var(--sm-color-text-soft);
+    .id-tag { font-family: monospace; font-size: 0.75rem; color: var(--sm-color-sapphire-400); background: rgba(var(--sm-rgb-sapphire-400), 0.1); padding: 0.2rem 0.5rem; border-radius: 4px; }
+    .monto-total { font-weight: 700; color: white; font-size: 0.9rem; }
+    .monto-comision { color: #f39c12; font-weight: 600; font-size: 0.85rem; }
+
+    .status-badge {
+      font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 20px; background: rgba(255,255,255,0.05); color: var(--sm-color-text-muted);
+      &.paid { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
     }
 
-    .loading-state {
-      padding: 6rem;
-      text-align: center;
-      color: var(--sm-color-text-soft);
+    /* Sidebar */
+    .dashboard-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+    .info-card {
+      padding: 1.5rem; border-radius: 16px;
+      &.bg-sapphire { background: linear-gradient(135deg, rgba(var(--sm-rgb-sapphire-600), 0.2), rgba(var(--sm-rgb-sapphire-800), 0.2)); border: 1px solid rgba(var(--sm-rgb-sapphire-400), 0.2); }
+      h4 { margin: 0 0 0.5rem; font-size: 1rem; color: white; }
+      p { font-size: 0.8rem; color: var(--sm-color-text-soft); margin-bottom: 1.5rem; }
+      .balance-box {
+        display: flex; flex-direction: column; margin-bottom: 1.5rem;
+        .balance-label { font-size: 0.7rem; color: var(--sm-color-text-muted); text-transform: uppercase; font-weight: 700; }
+        .balance-value { font-size: 1.8rem; font-weight: 800; color: white; }
+      }
+      .action-btn { width: 100%; border-radius: 8px; font-weight: 700; }
     }
 
-    .empty-state {
-      padding: 3rem;
-      text-align: center;
-      color: var(--sm-color-text-muted);
+    .tip-card {
+      padding: 1.25rem; border-radius: 16px;
+      .tip-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; color: #f1c40f; font-weight: 700; font-size: 0.8rem; }
+      p { font-size: 0.75rem; color: var(--sm-color-text-soft); margin: 0; line-height: 1.5; }
     }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class DashboardFinancieroPage {
   private financeService = inject(FinanceService);
+  private authStore = inject(AuthStore);
 
-  readonly incomeIcon = DollarSign;
-  readonly commissionIcon = PieChart;
-  readonly doneIcon = CheckCircle;
-  readonly trendIcon = ArrowUpRight;
-  readonly reportIcon = FileText;
+  // Iconos
+  protected readonly incomeIcon = DollarSign;
+  protected readonly commissionIcon = PieChart;
+  protected readonly doneIcon = CheckCircle;
+  protected readonly trendUpIcon = TrendingUp;
+  protected readonly reportIcon = FileText;
+  protected readonly walletIcon = Wallet;
+  protected readonly trendingIcon = TrendingUp;
+  protected readonly zapIcon = Zap;
+  protected readonly refreshIcon = RefreshCw;
 
-  displayedColumns = ['fecha', 'monto', 'comision', 'metodo'];
+  isSuperAdmin = computed(() => this.authStore.user()?.rol_nombre === 'superadmin');
+  displayedColumns = ['fecha', 'id', 'monto', 'comision', 'estado'];
 
-  summaryQuery = injectQuery(() => ({
-    queryKey: ['financial-summary'],
-    queryFn: () => lastValueFrom(this.financeService.getDashboardSummary()),
-    refetchInterval: 30000
+  paymentsQuery = injectQuery(() => ({
+    queryKey: ['financial-payments'],
+    queryFn: () => lastValueFrom(this.financeService.getPayments()),
+    refetchInterval: 60000
   }));
+
+  // Estadísticas Calculadas en Caliente
+  stats = computed(() => {
+    const data = this.paymentsQuery.data() || [];
+    const totalIngresos = data.reduce((acc, curr) => acc + Number(curr.monto), 0);
+    const totalComisiones = data.reduce((acc, curr) => acc + Number(curr.monto_comision), 0);
+    
+    return {
+      totalIngresos,
+      totalComisiones,
+      count: data.length
+    };
+  });
 }

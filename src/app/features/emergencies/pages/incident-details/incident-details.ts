@@ -9,6 +9,8 @@ import { EvidenceViewer } from '../../components/evidence-viewer/evidence-viewer
 import { AiAnalysisPanel } from '../../components/ai-analysis-panel/ai-analysis-panel';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { PageHeaderComponent, LoadingStateComponent } from '@shared/ui';
+import { LucideAngularModule, Siren } from 'lucide-angular';
 
 @Component({
   selector: 'app-incident-details-page',
@@ -20,24 +22,24 @@ import { MatIconModule } from '@angular/material/icon';
     EvidenceViewer, 
     AiAnalysisPanel,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    LucideAngularModule
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="header-left">
-          <button mat-icon-button routerLink="/workshops/assignments" aria-label="Volver">
-            <mat-icon>arrow_back</mat-icon>
-          </button>
-          <h1>Detalles del Incidente</h1>
-        </div>
-      </header>
+      <app-page-header 
+        title="Detalles del Incidente" 
+        subtitle="Información detallada y análisis de la emergencia mecánica."
+        [icon]="sirenIcon">
+        <button prefix mat-icon-button routerLink="/workshops/assignments" aria-label="Volver">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+      </app-page-header>
 
       @if (incidentQuery.isPending()) {
-        <div class="loading-state">
-          <mat-icon class="spin">autorenew</mat-icon>
-          <p>Cargando información del incidente...</p>
-        </div>
+        <app-loading-state message="Consultando detalles del incidente..."></app-loading-state>
       } @else if (incidentQuery.isError()) {
         <div class="error-state">
           <mat-icon>error_outline</mat-icon>
@@ -66,23 +68,7 @@ import { MatIconModule } from '@angular/material/icon';
     </div>
   `,
   styles: [`
-    .page-container {
-      padding: 2rem;
-    }
-
-    .page-header {
-      margin-bottom: 2rem;
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-      h1 {
-        margin: 0;
-        font-size: 1.75rem;
-        color: var(--sm-color-text-title);
-      }
-    }
+    .page-container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
 
     .details-layout {
       display: grid;
@@ -108,20 +94,13 @@ import { MatIconModule } from '@angular/material/icon';
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
-    .loading-state, .error-state {
-      padding: 5rem;
+    .error-state {
+      padding: 3rem;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      color: var(--sm-color-text-soft);
-      
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-      }
+      background: rgba(var(--sm-rgb-slate-400), 0.05);
+      border-radius: 12px;
+      mat-icon { font-size: 48px; width: 48px; height: 48px; color: var(--sm-color-crimson-500); margin-bottom: 1rem; }
+      p { color: var(--sm-color-text-soft); margin-bottom: 1.5rem; }
     }
 
     .spin {
@@ -145,4 +124,6 @@ export class IncidentDetails {
     queryFn: () => lastValueFrom(this.emergenciesService.getIncidentById(this.incidentId)),
     enabled: !!this.incidentId
   }));
+
+  readonly sirenIcon = Siren;
 }

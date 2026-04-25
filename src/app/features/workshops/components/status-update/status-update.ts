@@ -1,18 +1,18 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { StatusUpdate } from '@core/models/workshops.model';
 
 @Component({
   selector: 'app-status-update',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatButtonModule],
   templateUrl: './status-update.html',
   styleUrls: ['./status-update.scss']
 })
 export class StatusUpdateComponent {
-  @Input() currentStatus: string = '';
-  @Output() statusChanged = new EventEmitter<StatusUpdate>();
+  readonly currentStatus = input<string>('');
+  readonly statusChanged = output<StatusUpdate>();
 
   states = [
     { value: 'EN_CAMINO', label: 'En Camino', icon: 'directions_car' },

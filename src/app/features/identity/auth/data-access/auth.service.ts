@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import { Observable } from 'rxjs';
 import { LoginCredentials, AuthResponse } from '../schemas/auth.schema';
 import { StorageService } from '../../../../core/services/storage.service';
@@ -10,7 +11,7 @@ import { StorageService } from '../../../../core/services/storage.service';
 export class AuthService {
   private http = inject(HttpClient);
   private storageService = inject(StorageService);
-  private readonly API_URL = '/api/v1/identity/auth';
+  private readonly API_URL = `${environment.apiUrl}/identity/auth`;
 
   /**
    * Realiza la petición de login al backend

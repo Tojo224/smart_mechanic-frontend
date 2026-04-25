@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -26,7 +26,9 @@ export class PaymentForm {
     { value: 'TRANSFERENCIA', label: 'Transferencia Bancaria' }
   ];
 
-  constructor(private fb: FormBuilder) {
+  private fb = inject(FormBuilder);
+
+  constructor() {
     this.paymentForm = this.fb.group({
       monto: [0, [Validators.required, Validators.min(1)]],
       metodo_pago: ['QR', [Validators.required]]

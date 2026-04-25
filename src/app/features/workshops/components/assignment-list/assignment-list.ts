@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,15 +7,15 @@ import { IncidentResponse } from '@core/models/workshops.model';
 
 @Component({
   selector: 'app-assignment-list',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatTableModule, MatButtonModule, MatChipsModule],
   templateUrl: './assignment-list.html',
   styleUrls: ['./assignment-list.scss']
 })
 export class AssignmentList {
-  @Input() assignments: IncidentResponse[] = [];
-  @Output() viewDetail = new EventEmitter<string>();
-  @Output() updateStatus = new EventEmitter<IncidentResponse>();
+  readonly assignments = input<IncidentResponse[]>([]);
+  readonly viewDetail = output<string>();
+  readonly updateStatus = output<IncidentResponse>();
 
   displayedColumns: string[] = ['id', 'descripcion', 'prioridad', 'estado', 'acciones'];
 

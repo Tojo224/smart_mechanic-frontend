@@ -1,5 +1,5 @@
 <div class="table-container">
-  <table mat-table [dataSource]="assignments" class="mat-elevation-z0">
+  <table mat-table [dataSource]="assignments()" class="mat-elevation-z0">
     
     <ng-container matColumnDef="id">
       <th mat-header-cell *matHeaderCellDef> ID </th>
@@ -43,7 +43,7 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
   </table>
 
-  @if (assignments.length === 0) {
+  @if (assignments().length === 0) {
     <div class="empty-state">
       <p>No tienes asignaciones pendientes.</p>
     </div>

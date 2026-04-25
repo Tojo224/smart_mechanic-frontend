@@ -1,52 +1,51 @@
-import { Component, EventEmitter, Output, PLATFORM_ID, Inject, AfterViewInit, OnDestroy, Input, OnChanges } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, PLATFORM_ID, inject, input, output } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { TallerCreate, TallerResponse } from '@core/models/workshops.model';
+import type * as L from 'leaflet';
 
 @Component({
   selector: 'app-workshop-form',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule, MatFormFieldModule],
   templateUrl: './workshop-form.html',
   styleUrls: ['./workshop-form.scss']
 })
 export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
-  @Input() initialData: TallerResponse | null = null;
-  @Output() save = new EventEmitter<TallerCreate>();
+  readonly initialData = input<TallerResponse | null>(null);
+  readonly save = output<TallerCreate>();
 
-  workshopForm: FormGroup;
-  private map: any;
-  private marker: any;
-  private L: any;
+  private fb = inject(FormBuilder);
+  private platformId = inject(PLATFORM_ID);
 
-  constructor(
-    private fb: FormBuilder,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {
-    this.workshopForm = this.fb.group({
-      nombre: ['', [Validators.required, Validators.maxLength(150)]],
-      nit: ['', [Validators.required, Validators.maxLength(50)]],
-      telefono: ['', [Validators.maxLength(20)]],
-      email: ['', [Validators.email]],
-      direccion: ['', [Validators.maxLength(255)]],
-      latitud: [0, [Validators.required, Validators.min(-90), Validators.max(90)]],
-      longitud: [0, [Validators.required, Validators.min(-180), Validators.max(180)]]
-    });
-  }
+  workshopForm = this.fb.nonNullable.group({
+    nombre: ['', [Validators.required, Validators.maxLength(150)]],
+    nit: ['', [Validators.required, Validators.maxLength(50)]],
+    telefono: ['', [Validators.maxLength(20)]],
+    email: ['', [Validators.email]],
+    direccion: ['', [Validators.maxLength(255)]],
+    latitud: [0, [Validators.required, Validators.min(-90), Validators.max(90)]],
+    longitud: [0, [Validators.required, Validators.min(-180), Validators.max(180)]]
+  });
+
+  private map: L.Map | undefined;
+  private marker: L.Marker | undefined;
+  private L: typeof L | undefined;
 
   ngOnChanges() {
-    if (this.initialData) {
+    const data = this.initialData();
+    if (data) {
       this.workshopForm.patchValue({
-        nombre: this.initialData.nombre,
-        nit: this.initialData.nit,
-        telefono: this.initialData.telefono,
-        email: this.initialData.email,
-        direccion: this.initialData.direccion,
-        latitud: this.initialData.latitud || 0,
-        longitud: this.initialData.longitud || 0
+        nombre: data.nombre,
+        nit: data.nit,
+        telefono: data.telefono,
+        email: data.email,
+        direccion: data.direccion,
+        latitud: data.latitud || 0,
+        longitud: data.longitud || 0
       });
       // En modo edición, el NIT no se debería poder cambiar
       this.workshopForm.get('nit')?.disable();
@@ -68,8 +67,11 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private initMap() {
-    const defaultLat = this.initialData?.latitud || -16.5000;
-    const defaultLng = this.initialData?.longitud || -68.1193;
+    if (!this.L || this.map) return;
+
+    const data = this.initialData();
+    const defaultLat = data?.latitud || -16.5000;
+    const defaultLng = data?.longitud || -68.1193;
 
     this.map = this.L.map('map', {
       center: [defaultLat, defaultLng],
@@ -96,11 +98,13 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
     });
     this.L.Marker.prototype.options.icon = iconDefault;
 
-    if (this.initialData?.latitud && this.initialData?.longitud) {
-      this.marker = this.L.marker([this.initialData.latitud, this.initialData.longitud]).addTo(this.map);
+    if (data?.latitud != null && data?.longitud != null) {
+      this.marker = this.L.marker([data.latitud, data.longitud]).addTo(this.map);
     }
 
-    this.map.on('click', (e: any) => {
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      if (!this.L || !this.map) return;
+
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
 
@@ -120,8 +124,9 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private updateMapMarker() {
-    if (this.map && this.initialData?.latitud && this.initialData?.longitud) {
-      const latlng = [this.initialData.latitud, this.initialData.longitud];
+    const data = this.initialData();
+    if (this.L && this.map && data?.latitud != null && data?.longitud != null) {
+      const latlng: L.LatLngTuple = [data.latitud, data.longitud];
       this.map.setView(latlng, 15);
       if (this.marker) {
         this.marker.setLatLng(latlng);

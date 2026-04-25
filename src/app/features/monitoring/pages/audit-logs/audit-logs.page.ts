@@ -12,7 +12,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { LucideAngularModule, ShieldCheck, User, Globe, Clock, Terminal, Filter, Search, RefreshCw } from 'lucide-angular';
+import { LucideAngularModule, ShieldCheck, User, Globe, Clock, Terminal, Filter, RefreshCw, Search, Calendar, Eye, Download } from 'lucide-angular';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 /** Mapa de rutas API → etiqueta legible */
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -58,22 +59,23 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
     MatIconModule,
     MatButtonModule,
     LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>
-            <lucide-icon [img]="shieldIcon" [size]="28"></lucide-icon>
-            Bitácora de Auditoría
-          </h1>
-          <p>Registro histórico de seguridad y operaciones críticas del sistema.</p>
+      <app-page-header 
+        title="Bitácora de Auditoría" 
+        subtitle="Registro histórico de acciones críticas y eventos de seguridad del sistema."
+        [icon]="shieldIcon">
+        <div actions>
+          <button mat-stroked-button class="refresh-btn" (click)="logsQuery.refetch()">
+            <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
+            Actualizar
+          </button>
         </div>
-        <button mat-stroked-button class="refresh-btn" (click)="refresh()">
-          <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
-          Actualizar
-        </button>
-      </header>
+      </app-page-header>
 
       <!-- Filtros -->
       <div class="filters-bar sm-glass-card">
@@ -84,13 +86,13 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
 
         <mat-form-field appearance="outline" class="filter-field">
           <mat-label>Buscar usuario</mat-label>
-          <input matInput [(ngModel)]="filterUsuario" (ngModelChange)="onFilterChange()" placeholder="Nombre del usuario..." />
-          <mat-icon matSuffix>search</mat-icon>
+          <input matInput [ngModel]="filterUsuario()" (ngModelChange)="filterUsuario.set($event); onFilterChange()" placeholder="Nombre del usuario..." />
+          <lucide-icon [img]="searchIcon" [size]="16" matSuffix></lucide-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field">
           <mat-label>Tipo de acción</mat-label>
-          <mat-select [(ngModel)]="filterAccion" (ngModelChange)="onFilterChange()">
+          <mat-select [ngModel]="filterAccion()" (ngModelChange)="filterAccion.set($event); onFilterChange()">
             <mat-option value="">Todas</mat-option>
             <mat-option value="login">Login</mat-option>
             <mat-option value="register">Registro</mat-option>
@@ -100,24 +102,21 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
+        <mat-form-field appearance="outline" class="date-filter">
           <mat-label>Fecha desde</mat-label>
-          <input matInput type="date" [(ngModel)]="filterFechaInicio" (ngModelChange)="onFilterChange()" />
+          <input matInput type="date" [ngModel]="filterFechaInicio()" (ngModelChange)="filterFechaInicio.set($event); onFilterChange()" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
+        <mat-form-field appearance="outline" class="date-filter">
           <mat-label>Fecha hasta</mat-label>
-          <input matInput type="date" [(ngModel)]="filterFechaFin" (ngModelChange)="onFilterChange()" />
+          <input matInput type="date" [ngModel]="filterFechaFin()" (ngModelChange)="filterFechaFin.set($event); onFilterChange()" />
         </mat-form-field>
 
         <button mat-button class="clear-btn" (click)="clearFilters()">Limpiar</button>
       </div>
 
       @if (logsQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Consultando registros de seguridad...</p>
-        </div>
+        <app-loading-state message="Consultando bitácora de seguridad..."></app-loading-state>
       } @else if (logsQuery.isError()) {
         <div class="error-state sm-glass-card">
           <p>❌ No se pudo cargar la bitácora. Verifica tu conexión con el servidor.</p>
@@ -187,16 +186,18 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
           </table>
 
-          @if ((logsQuery.data()?.length ?? 0) === 0) {
-            <div class="empty-state">
-              <p>No hay registros que coincidan con los filtros aplicados.</p>
-            </div>
+          @if ((logsQuery.data() || []).length === 0) {
+            <app-empty-state 
+              [icon]="shieldIcon" 
+              title="Sin registros" 
+              message="No se encontraron eventos de auditoría para los filtros aplicados.">
+            </app-empty-state>
           }
 
           <!-- Paginación -->
           <mat-paginator
             [length]="logsQuery.data()?.length || 0"
-            [pageSize]="pageSize"
+            [pageSize]="pageSize()"
             [pageSizeOptions]="[10, 20, 50]"
             (page)="onPageChange($event)"
             aria-label="Página de bitácora">
@@ -206,14 +207,7 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
     </div>
   `,
   styles: [`
-    .page-container { padding: 2rem; max-width: 1300px; margin: 0 auto; }
-
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 2rem;
-      h1 { margin: 0; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; color: var(--sm-color-text-title); }
-      p { margin: 0.5rem 0 0; color: var(--sm-color-text-soft); }
-    }
+    .page-container { padding: 2rem; max-width: 1300px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
 
     .refresh-btn {
       display: flex; align-items: center; gap: 0.5rem;
@@ -228,9 +222,10 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
       .filter-title { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--sm-color-sapphire-400); text-transform: uppercase; white-space: nowrap; }
     }
 
-    .filter-field { min-width: 180px; flex: 1; }
+    .filter-field { flex: 1; min-width: 200px; max-width: 300px; }
+    .date-filter { flex: 0.5; min-width: 150px; max-width: 200px; }
 
-    .clear-btn { color: var(--sm-color-text-muted); font-size: 0.8rem; }
+    .clear-btn { color: var(--sm-color-sapphire-400); font-size: 0.8rem; font-weight: 600; &:hover { color: var(--sm-color-sapphire-300); } }
 
     /* Tabla */
     .table-card { border: none; padding: 0; }
@@ -268,9 +263,7 @@ function resolveActionBadge(accion: string): { label: string; color: string } {
     .ip-cell, .date-cell { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--sm-color-text-soft); }
     code { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
 
-    .loading-state { padding: 8rem; text-align: center; color: var(--sm-color-text-soft); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
     .error-state { padding: 3rem; text-align: center; color: #e74c3c; }
-    .empty-state { padding: 4rem; text-align: center; color: var(--sm-color-text-muted); }
 
     mat-paginator { background: transparent; }
 
@@ -288,16 +281,17 @@ export class AuditLogsPage {
   readonly actionIcon  = Terminal;
   readonly filterIcon  = Filter;
   readonly refreshIcon = RefreshCw;
+  readonly searchIcon  = Search;
 
   displayedColumns = ['usuario', 'accion', 'descripcion', 'ip', 'fecha'];
 
-  // Estado de filtros
-  filterUsuario    = '';
-  filterAccion     = '';
-  filterFechaInicio = '';
-  filterFechaFin   = '';
-  pageSize         = 20;
-  pageIndex        = 0;
+  // Estado de filtros (Signals para reactividad)
+  filterUsuario    = signal('');
+  filterAccion     = signal('');
+  filterFechaInicio = signal('');
+  filterFechaFin   = signal('');
+  pageSize         = signal(20);
+  pageIndex        = signal(0);
 
   // Params reactivos para la query
   private queryParams = signal<Record<string, string | number>>({});
@@ -314,22 +308,22 @@ export class AuditLogsPage {
   }
 
   onFilterChange() {
-    this.pageIndex = 0;
+    this.pageIndex.set(0);
     this.applyFilters();
   }
 
   onPageChange(event: PageEvent) {
-    this.pageIndex = event.pageIndex;
-    this.pageSize  = event.pageSize;
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
     this.applyFilters();
   }
 
   clearFilters() {
-    this.filterUsuario     = '';
-    this.filterAccion      = '';
-    this.filterFechaInicio = '';
-    this.filterFechaFin    = '';
-    this.pageIndex         = 0;
+    this.filterUsuario.set('');
+    this.filterAccion.set('');
+    this.filterFechaInicio.set('');
+    this.filterFechaFin.set('');
+    this.pageIndex.set(0);
     this.applyFilters();
   }
 
@@ -339,13 +333,13 @@ export class AuditLogsPage {
 
   private applyFilters() {
     const params: Record<string, string | number> = {
-      page: this.pageIndex,
-      size: this.pageSize,
+      page: this.pageIndex(),
+      size: this.pageSize(),
     };
-    if (this.filterUsuario)     params['usuario_nombre'] = this.filterUsuario;
-    if (this.filterAccion)      params['accion']         = this.filterAccion;
-    if (this.filterFechaInicio) params['fecha_inicio']   = this.filterFechaInicio;
-    if (this.filterFechaFin)    params['fecha_fin']      = this.filterFechaFin;
+    if (this.filterUsuario())     params['usuario_nombre'] = this.filterUsuario();
+    if (this.filterAccion())      params['accion']         = this.filterAccion();
+    if (this.filterFechaInicio()) params['fecha_inicio']   = this.filterFechaInicio();
+    if (this.filterFechaFin())    params['fecha_fin']      = this.filterFechaFin();
     this.queryParams.set(params);
   }
 }

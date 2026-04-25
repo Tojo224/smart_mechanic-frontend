@@ -4,6 +4,7 @@ import { environment } from '@env/environment';
 import { Observable, map } from 'rxjs';
 import { GlobalStats, AuditLog } from '../models/monitoring.model';
 import { TallerResponse } from '@core/models/workshops.model';
+import { IncidentDetailResponse } from '@core/models/emergencies.model';
 
 @Injectable({
   providedIn: 'root'
@@ -80,7 +81,7 @@ export class MonitoringService {
   /**
    * CU23: Consultar historial global de servicios (paginación client-side)
    */
-  getGlobalHistory(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/emergencies/`);
+  getGlobalHistory(): Observable<IncidentDetailResponse[]> {
+    return this.http.get<IncidentDetailResponse[]>(`${environment.apiUrl}/emergencies/`);
   }
 }

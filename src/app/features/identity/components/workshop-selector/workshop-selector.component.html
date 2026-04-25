@@ -1,0 +1,14 @@
+<mat-form-field appearance="outline" class="selector-field">
+  <mat-label>Filtrar por Taller</mat-label>
+  <mat-select (selectionChange)="onSelectionChange($event.value)">
+    <mat-option [value]="null">Todos los talleres (Global)</mat-option>
+    @for (workshop of workshops(); track workshop.id_taller) {
+      <mat-option [value]="workshop.id_taller">
+        {{ workshop.nombre }} ({{ workshop.nit }})
+      </mat-option>
+    }
+  </mat-select>
+  @if (isLoading()) {
+    <mat-hint>Cargando talleres...</mat-hint>
+  }
+</mat-form-field>

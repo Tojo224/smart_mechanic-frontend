@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import { Observable } from 'rxjs';
 import { 
   TallerCreate, 
@@ -16,7 +17,7 @@ import {
 })
 export class WorkshopsService {
   private http = inject(HttpClient);
-  private readonly API_URL = '/api/v1/workshops';
+  private readonly API_URL = `${environment.apiUrl}/workshops`;
 
   /**
    * Registra un nuevo taller (Admin Taller)
@@ -29,7 +30,7 @@ export class WorkshopsService {
    * Lista todos los talleres registrados (Solo SuperAdmin)
    */
   getAllWorkshops(): Observable<TallerResponse[]> {
-    return this.http.get<TallerResponse[]>(`${this.API_URL}/`);
+    return this.http.get<TallerResponse[]>(`${this.API_URL}`);
   }
 
   /**

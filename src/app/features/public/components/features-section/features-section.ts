@@ -1,16 +1,25 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Brain, Clock, ShieldCheck, MapPin } from 'lucide-angular';
 
+type FeatureColor = 'sapphire' | 'warning' | 'success' | 'danger';
+
+interface PublicFeature {
+  title: string;
+  description: string;
+  icon: typeof Brain | typeof MapPin | typeof Clock | typeof ShieldCheck;
+  color: FeatureColor;
+}
+
 @Component({
   selector: 'app-features-section',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, LucideAngularModule],
   templateUrl: './features-section.html',
   styleUrls: ['./features-section.scss']
 })
 export class FeaturesSection {
-  features = [
+  readonly features: PublicFeature[] = [
     {
       title: 'Análisis IA Instantáneo',
       description: 'Sube una foto o graba un audio de tu emergencia y nuestra IA evaluará el daño y estimará los requerimientos.',

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -23,9 +23,10 @@ export class ProfileForm implements OnChanges {
   @Input() user: UserResponse | null = null;
   @Output() updateProfile = new EventEmitter<UserProfileUpdate>();
 
+  private fb = inject(FormBuilder);
   profileForm: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
     this.profileForm = this.fb.group({
       nombre: ['', Validators.maxLength(150)],
       telefono: ['', Validators.maxLength(20)]

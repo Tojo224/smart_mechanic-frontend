@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import { Observable } from 'rxjs';
 import { IncidentResponse } from '@core/models/workshops.model';
 
@@ -8,7 +9,7 @@ import { IncidentResponse } from '@core/models/workshops.model';
 })
 export class EmergenciesService {
   private http = inject(HttpClient);
-  private readonly API_URL = '/api/v1/emergencies';
+  private readonly API_URL = `${environment.apiUrl}/emergencies`;
 
   /**
    * Obtiene todos los incidentes globales (Solo SuperAdmin)

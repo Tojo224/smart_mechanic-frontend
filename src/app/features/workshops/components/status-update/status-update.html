@@ -1,14 +1,14 @@
 <div class="status-container">
   <h3>Actualizar Estado</h3>
-  <p>Estado actual: <strong>{{ currentStatus }}</strong></p>
+  <p>Estado actual: <strong>{{ currentStatus() }}</strong></p>
   
   <div class="status-buttons">
     @for (state of states; track state.value) {
       <button 
         mat-stroked-button 
-        [color]="currentStatus === state.value ? 'primary' : ''"
+        [color]="currentStatus() === state.value ? 'primary' : ''"
         (click)="onStatusSelect(state.value)"
-        [disabled]="currentStatus === state.value"
+        [disabled]="currentStatus() === state.value"
       >
         {{ state.label }}
       </button>

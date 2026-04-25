@@ -13,7 +13,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-angular';
+import { LucideAngularModule, Activity, Map as MapIcon, Shield, Radio, Search, Filter, Layers, Navigation, Siren, CheckCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-angular';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 @Component({
   selector: 'app-global-monitor',
@@ -29,18 +30,17 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
     MatButtonModule,
     MatChipsModule,
     LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>
-            <lucide-icon [img]="sirenIcon" [size]="26"></lucide-icon>
-            {{ pageTitle() }}
-          </h1>
-          <p>{{ pageSubtitle() }}</p>
-        </div>
-        <div class="header-right">
+      <app-page-header 
+        [title]="pageTitle()"
+        [subtitle]="pageSubtitle()"
+        [icon]="sirenIcon">
+        <div class="header-right" actions>
           @if (incidentsQuery.isFetching() && incidentsQuery.data()) {
             <div class="sync-indicator">
               <div class="mini-spinner"></div>
@@ -56,13 +56,10 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
             Actualizar
           </button>
         </div>
-      </header>
+      </app-page-header>
 
       @if (incidentsQuery.isPending() && !incidentsQuery.data()) {
-        <div class="loading-overlay">
-          <div class="spinner"></div>
-          <p>Cargando monitor...</p>
-        </div>
+        <app-loading-state message="Sincronizando monitor central..."></app-loading-state>
       } @else {
 
         <!-- Stats Bar -->
@@ -98,13 +95,13 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
 
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Buscar por ID</mat-label>
-            <input matInput [(ngModel)]="searchId" (ngModelChange)="onFilterChange()" placeholder="ID incidente..." />
-            <mat-icon matSuffix>search</mat-icon>
+            <input matInput [ngModel]="searchId()" (ngModelChange)="searchId.set($event); onFilterChange()" placeholder="ID incidente..." />
+            <lucide-icon [img]="searchIcon" [size]="16" matSuffix></lucide-icon>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="filter-field filter-sm">
             <mat-label>Estado</mat-label>
-            <mat-select [(ngModel)]="filterEstado" (ngModelChange)="onFilterChange()">
+            <mat-select [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event); onFilterChange()">
               <mat-option value="">Todos</mat-option>
               <mat-option value="PENDIENTE">Pendiente</mat-option>
               <mat-option value="ASIGNADO">Asignado</mat-option>
@@ -117,7 +114,7 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
 
           <mat-form-field appearance="outline" class="filter-field filter-sm">
             <mat-label>Prioridad</mat-label>
-            <mat-select [(ngModel)]="filterPrioridad" (ngModelChange)="onFilterChange()">
+            <mat-select [ngModel]="filterPrioridad()" (ngModelChange)="filterPrioridad.set($event); onFilterChange()">
               <mat-option value="">Todas</mat-option>
               <mat-option value="ALTA">Alta</mat-option>
               <mat-option value="MEDIA">Media</mat-option>
@@ -127,21 +124,21 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
 
           <mat-form-field appearance="outline" class="filter-field filter-sm">
             <mat-label>Taller</mat-label>
-            <mat-select [(ngModel)]="filterTaller" (ngModelChange)="onFilterChange()">
+            <mat-select [ngModel]="filterTaller()" (ngModelChange)="filterTaller.set($event); onFilterChange()">
               <mat-option value="">Todos</mat-option>
               <mat-option value="asignado">Con taller</mat-option>
               <mat-option value="sin_asignar">Sin asignar</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="filter-field">
+          <mat-form-field appearance="outline" class="filter-field date-filter">
             <mat-label>Fecha desde</mat-label>
-            <input matInput type="date" [(ngModel)]="filterFechaInicio" (ngModelChange)="onFilterChange()" />
+            <input matInput type="date" [ngModel]="filterFechaInicio()" (ngModelChange)="filterFechaInicio.set($event); onFilterChange()" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="filter-field">
+          <mat-form-field appearance="outline" class="filter-field date-filter">
             <mat-label>Fecha hasta</mat-label>
-            <input matInput type="date" [(ngModel)]="filterFechaFin" (ngModelChange)="onFilterChange()" />
+            <input matInput type="date" [ngModel]="filterFechaFin()" (ngModelChange)="filterFechaFin.set($event); onFilterChange()" />
           </mat-form-field>
 
           <button mat-button class="clear-btn" (click)="clearFilters()">Limpiar</button>
@@ -218,17 +215,18 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
           </table>
 
           @if (filteredData().length === 0 && !incidentsQuery.isLoading()) {
-            <div class="empty-state">
-              <lucide-icon [img]="sirenIcon" [size]="36"></lucide-icon>
-              <p>No hay incidentes que coincidan con los filtros.</p>
-            </div>
+            <app-empty-state 
+              [icon]="sirenIcon" 
+              title="Sin incidentes" 
+              message="No hay incidentes que coincidan con los filtros aplicados.">
+            </app-empty-state>
           }
 
           <!-- Paginación dinámica -->
           <mat-paginator
             [length]="filteredData().length"
-            [pageSize]="pageSize"
-            [pageIndex]="pageIndex"
+            [pageSize]="pageSize()"
+            [pageIndex]="pageIndex()"
             [pageSizeOptions]="[10, 25, 50]"
             (page)="onPageChange($event)"
             aria-label="Páginas del monitor">
@@ -238,13 +236,7 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
     </div>
   `,
   styles: [`
-    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; }
-
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem;
-      h1 { margin: 0; font-size: 1.7rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; color: var(--sm-color-text-title); }
-      p { margin: 0.4rem 0 0; color: var(--sm-color-text-soft); font-size: 0.9rem; }
-    }
+    .page-container { padding: 2rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.5rem; animation: fadeIn 0.4s ease-out; }
 
     .header-right { display: flex; align-items: center; gap: 1rem; }
 
@@ -270,12 +262,13 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
     /* Filtros */
     .filters-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; margin-bottom: 1.25rem; }
     .filter-title { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 600; color: var(--sm-color-sapphire-400); text-transform: uppercase; white-space: nowrap; }
-    .filter-field { flex: 1; min-width: 150px; }
-    .filter-sm { max-width: 140px; flex: 0 0 140px; }
-    .clear-btn { color: var(--sm-color-text-muted); font-size: 0.8rem; white-space: nowrap; }
+    .filter-field { flex: 1; min-width: 180px; max-width: 250px; }
+    .filter-sm { max-width: 150px; }
+    .date-filter { max-width: 200px; }
+    .clear-btn { color: var(--sm-color-sapphire-400); font-size: 0.8rem; font-weight: 600; white-space: nowrap; &:hover { color: var(--sm-color-sapphire-300); } }
 
     /* Tabla */
-    .table-container { border-radius: 12px; overflow: hidden; }
+    .table-container { border-radius: 12px; overflow: auto; background: var(--sm-color-gunmetal-900); border: 1px solid rgba(255,255,255,0.05); }
     .table-header { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--sm-color-sapphire-400); font-size: 0.82rem; font-weight: 600;
       .count-badge { margin-left: auto; background: rgba(var(--sm-rgb-sapphire-400),.15); color: var(--sm-color-sapphire-300); padding: .15rem .6rem; border-radius: 20px; font-size: .72rem; }
     }
@@ -307,13 +300,10 @@ import { LucideAngularModule, Activity, Siren, CheckCircle, Clock, Filter, Refre
     .assigned-tag { font-size: .7rem; padding: .15rem .5rem; border-radius: 4px; background: rgba(46,204,113,.1); color: #2ecc71; font-weight: 600; }
     .pending-tag  { font-size: .7rem; padding: .15rem .5rem; border-radius: 4px; background: rgba(var(--sm-rgb-slate-400),.1); color: var(--sm-color-text-muted); font-style: italic; }
 
-    .loading-overlay { padding: 6rem; text-align: center; color: var(--sm-color-text-soft); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-    .empty-state { padding: 4rem; text-align: center; color: var(--sm-color-text-muted); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
     mat-paginator { background: transparent; }
 
     @keyframes spin  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes pulse { 0%  { box-shadow: 0 0 0 0 rgba(231,76,60,.7); } 70% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(var(--sm-rgb-sapphire-400),.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin .8s linear infinite; }
   `]
 })
 export class GlobalMonitorComponent {
@@ -327,6 +317,7 @@ export class GlobalMonitorComponent {
   readonly checkIcon    = CheckCircle;
   readonly filterIcon   = Filter;
   readonly refreshIcon  = RefreshCw;
+  readonly searchIcon   = Search;
 
   displayedColumns = ['prioridad', 'id', 'fecha', 'resumen', 'taller', 'estado'];
 
@@ -344,15 +335,15 @@ export class GlobalMonitorComponent {
       : 'Seguimiento de los incidentes asignados a tu taller.'
   );
 
-  // ── Filtros ────────────────────────────────────────────────────────────────
-  searchId          = '';
-  filterEstado      = '';
-  filterPrioridad   = '';
-  filterTaller      = '';
-  filterFechaInicio = '';
-  filterFechaFin    = '';
-  pageSize          = 10;
-  pageIndex         = 0;
+  // ── Filtros (Signals para reactividad) ───────────────────────────────────
+  searchId          = signal('');
+  filterEstado      = signal('');
+  filterPrioridad   = signal('');
+  filterTaller      = signal('');
+  filterFechaInicio = signal('');
+  filterFechaFin    = signal('');
+  pageSize          = signal(10);
+  pageIndex         = signal(0);
 
   // ── Query (auto-refresh cada 30s) ─────────────────────────────────────────
   incidentsQuery = injectQuery(() => ({
@@ -362,7 +353,7 @@ export class GlobalMonitorComponent {
   }));
 
   // ── Stats calculadas ──────────────────────────────────────────────────────
-  allData          = computed(() => (this.incidentsQuery.data() as any[]) ?? []);
+  allData          = computed(() => (this.incidentsQuery.data()) ?? []);
   totalCount       = computed(() => this.allData().length);
   activeCount      = computed(() => this.allData().filter(i => ['EN_CAMINO','EN_PROGRESO'].includes(i.estado_incidente)).length);
   highPriorityCount = computed(() => this.allData().filter(i => i.prioridad_incidente === 'ALTA').length);
@@ -372,21 +363,21 @@ export class GlobalMonitorComponent {
   filteredData = computed(() => {
     let data = this.allData();
 
-    if (this.searchId) {
-      const q = this.searchId.toLowerCase();
-      data = data.filter((i: any) => i.id_incidente?.toLowerCase().includes(q));
+    if (this.searchId()) {
+      const q = this.searchId().toLowerCase();
+      data = data.filter((i) => i.id_incidente?.toLowerCase().includes(q));
     }
-    if (this.filterEstado)    data = data.filter((i: any) => i.estado_incidente === this.filterEstado);
-    if (this.filterPrioridad) data = data.filter((i: any) => i.prioridad_incidente === this.filterPrioridad);
-    if (this.filterTaller === 'asignado')    data = data.filter((i: any) =>  i.id_taller);
-    if (this.filterTaller === 'sin_asignar') data = data.filter((i: any) => !i.id_taller);
-    if (this.filterFechaInicio) {
-      const desde = new Date(this.filterFechaInicio).getTime();
-      data = data.filter((i: any) => new Date(i.fecha_reporte).getTime() >= desde);
+    if (this.filterEstado())    data = data.filter((i) => i.estado_incidente === this.filterEstado());
+    if (this.filterPrioridad()) data = data.filter((i) => i.prioridad_incidente === this.filterPrioridad());
+    if (this.filterTaller() === 'asignado')    data = data.filter((i) =>  i.id_taller);
+    if (this.filterTaller() === 'sin_asignar') data = data.filter((i) => !i.id_taller);
+    if (this.filterFechaInicio()) {
+      const desde = new Date(this.filterFechaInicio()).getTime();
+      data = data.filter((i) => new Date(i.fecha_reporte || '').getTime() >= desde);
     }
-    if (this.filterFechaFin) {
-      const hasta = new Date(this.filterFechaFin + 'T23:59:59').getTime();
-      data = data.filter((i: any) => new Date(i.fecha_reporte).getTime() <= hasta);
+    if (this.filterFechaFin()) {
+      const hasta = new Date(this.filterFechaFin() + 'T23:59:59').getTime();
+      data = data.filter((i) => new Date(i.fecha_reporte || '').getTime() <= hasta);
     }
 
     return data;
@@ -394,20 +385,24 @@ export class GlobalMonitorComponent {
 
   // ── Paginación dinámica ───────────────────────────────────────────────────
   pagedData = computed(() => {
-    const start = this.pageIndex * this.pageSize;
-    return this.filteredData().slice(start, start + this.pageSize);
+    const start = this.pageIndex() * this.pageSize();
+    return this.filteredData().slice(start, start + this.pageSize());
   });
 
-  onFilterChange() { this.pageIndex = 0; }
+  onFilterChange() { this.pageIndex.set(0); }
 
   onPageChange(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize  = e.pageSize;
+    this.pageIndex.set(e.pageIndex);
+    this.pageSize.set(e.pageSize);
   }
 
   clearFilters() {
-    this.searchId = this.filterEstado = this.filterPrioridad = this.filterTaller = '';
-    this.filterFechaInicio = this.filterFechaFin = '';
-    this.pageIndex = 0;
+    this.searchId.set('');
+    this.filterEstado.set('');
+    this.filterPrioridad.set('');
+    this.filterTaller.set('');
+    this.filterFechaInicio.set('');
+    this.filterFechaFin.set('');
+    this.pageIndex.set(0);
   }
 }

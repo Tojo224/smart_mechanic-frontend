@@ -1,3 +1,5 @@
+import { EvidenceResponse } from './emergencies.model';
+
 export interface TallerCreate {
   nombre: string;
   nit: string;
@@ -38,7 +40,7 @@ export interface IncidentResponse {
   resumen_ia: string | null;
   analisis_consolidado: string | null;
   fecha_reporte?: string;
-  evidencias: any[]; // Simplificado por ahora
+  evidencias: EvidenceResponse[];
 }
 
 export interface IncidentDetailResponse {
@@ -55,12 +57,13 @@ export interface IncidentDetailResponse {
   resumen_ia: string | null;
   analisis_consolidado: string | null;
   fecha_reporte?: string;
-  evidencias: any[]; // Simplificado por ahora
+  evidencias: EvidenceResponse[];
 }
 
 export interface TecnicoCreate {
   nombre: string;
   telefono?: string;
+  email?: string;
 }
 
 export interface TecnicoResponse {

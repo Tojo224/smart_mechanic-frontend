@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HomeAlert, HomeKpi, HomeQuickAction } from '../../models/home-dashboard.model';
+import { IncidentDetailResponse } from '@core/models/emergencies.model';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -17,7 +18,7 @@ export class HomeDashboardComponent {
   highlights = input<string[]>([]);
   alerts = input<HomeAlert[]>([]);
   quickActions = input<HomeQuickAction[]>([]);
-  incidents = input<any[]>([]);
+  incidents = input<IncidentDetailResponse[]>([]);
   isSyncing = input<boolean>(false);
 
   quickActionSelected = output<HomeQuickAction>();

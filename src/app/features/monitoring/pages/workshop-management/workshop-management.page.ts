@@ -12,7 +12,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Search, Filter, RefreshCw } from 'lucide-angular';
+import { LucideAngularModule, Wrench, Building2, Mail, Phone, MapPin, ShieldAlert, Search, Filter, RefreshCw, Power, Settings, Eye } from 'lucide-angular';
+import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
 
 @Component({
   selector: 'app-workshop-management',
@@ -28,60 +29,58 @@ import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Searc
     MatSelectModule,
     MatPaginatorModule,
     MatSnackBarModule,
-    LucideAngularModule
+    LucideAngularModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <div class="title-section">
-          <h1>
-            <lucide-icon [img]="workshopIcon" [size]="26"></lucide-icon>
-            Gestión de Talleres
-          </h1>
-          <p>Administra la red de talleres mecánicos afiliados a la plataforma.</p>
+      <app-page-header 
+        title="Gestión de Talleres" 
+        subtitle="Administración de la red de talleres, estados de servicio y auditoría de locales."
+        [icon]="wrenchIcon">
+        <div actions>
+          <button mat-stroked-button class="refresh-btn" (click)="workshopsQuery.refetch()">
+            <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
+            Actualizar
+          </button>
         </div>
-        <button mat-stroked-button class="refresh-btn" (click)="workshopsQuery.refetch()">
-          <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
-          Actualizar
-        </button>
-      </header>
+      </app-page-header>
 
-      <!-- Filtros -->
+      <!-- Filtros Premium -->
       <div class="filters-bar sm-glass-card">
-        <div class="filter-title">
-          <lucide-icon [img]="filterIcon" [size]="14"></lucide-icon>
-          <span>Filtros</span>
+        <div class="search-field">
+          <lucide-icon [img]="searchIcon" [size]="18" class="search-icon"></lucide-icon>
+          <input 
+            type="text" 
+            [ngModel]="searchQuery()" 
+            (ngModelChange)="searchQuery.set($event); onFilterChange()" 
+            placeholder="Buscar por nombre o NIT..." 
+            class="premium-input"
+          />
         </div>
 
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Buscar por nombre</mat-label>
-          <input matInput [(ngModel)]="searchQuery" (ngModelChange)="onFilterChange()" placeholder="Nombre del taller o NIT..." />
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="filter-field filter-sm">
+        <mat-form-field appearance="outline" class="sm-select filter-select">
           <mat-label>Estado</mat-label>
-          <mat-select [(ngModel)]="filterEstado" (ngModelChange)="onFilterChange()">
-            <mat-option value="">Todos</mat-option>
+          <mat-select [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event); onFilterChange()">
+            <mat-option value="">Todos los talleres</mat-option>
             <mat-option value="activo">Activos</mat-option>
             <mat-option value="suspendido">Suspendidos</mat-option>
           </mat-select>
         </mat-form-field>
 
-        <button mat-button class="clear-btn" (click)="clearFilters()">Limpiar</button>
+        <button mat-button class="clear-btn" (click)="clearFilters()">Limpiar filtros</button>
       </div>
 
       @if (workshopsQuery.isLoading()) {
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando red de talleres...</p>
-        </div>
+        <app-loading-state message="Sincronizando red de talleres..."></app-loading-state>
       } @else if (workshopsQuery.isError()) {
         <div class="error-state sm-glass-card">❌ Error al cargar los talleres.</div>
       } @else {
         <mat-card class="table-card sm-glass-card">
           <div class="table-header">
-            <lucide-icon [img]="workshopIcon" [size]="18"></lucide-icon>
+            <lucide-icon [img]="wrenchIcon" [size]="18"></lucide-icon>
             <span>Talleres Registrados</span>
             <span class="count-badge">{{ filteredWorkshops().length }}</span>
           </div>
@@ -94,7 +93,7 @@ import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Searc
               <td mat-cell *matCellDef="let w">
                 <div class="workshop-info">
                   <div class="icon-box">
-                    <lucide-icon [img]="workshopIcon" [size]="18"></lucide-icon>
+                    <lucide-icon [img]="wrenchIcon" [size]="18"></lucide-icon>
                   </div>
                   <div>
                     <div class="name">{{ w.nombre }}</div>
@@ -153,16 +152,17 @@ import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Searc
           </table>
 
           @if (filteredWorkshops().length === 0) {
-            <div class="empty-state">
-              <lucide-icon [img]="alertIcon" [size]="40"></lucide-icon>
-              <p>No se encontraron talleres con los filtros aplicados.</p>
-            </div>
+            <app-empty-state 
+              [icon]="wrenchIcon" 
+              title="Sin resultados" 
+              message="No se encontraron talleres con los criterios de búsqueda aplicados.">
+            </app-empty-state>
           }
 
           <mat-paginator
             [length]="filteredWorkshops().length"
-            [pageSize]="pageSize"
-            [pageIndex]="pageIndex"
+            [pageSize]="pageSize()"
+            [pageIndex]="pageIndex()"
             [pageSizeOptions]="[5, 10, 25]"
             (page)="onPageChange($event)"
             aria-label="Seleccionar página">
@@ -172,21 +172,22 @@ import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Searc
     </div>
   `,
   styles: [`
-    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; }
-    .page-header { 
-      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; 
-      h1 { margin: 0; font-size: 1.7rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; color: var(--sm-color-text-title); } 
-      p { margin: 0.4rem 0 0; color: var(--sm-color-text-soft); font-size: 0.9rem; } 
-    }
+    .page-container { padding: 2rem; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
 
-    .refresh-btn { display: flex; align-items: center; gap: 0.5rem; border-color: rgba(var(--sm-rgb-sapphire-400), 0.3); color: var(--sm-color-sapphire-400); }
+    .refresh-btn { display: flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(var(--sm-rgb-sapphire-400), 0.3); color: var(--sm-color-sapphire-400); border-radius: 10px; font-weight: 600; }
 
-    /* Filtros */
+    /* Filtros Premium */
     .filters-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 1rem 1.5rem; margin-bottom: 1.5rem; }
-    .filter-title { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 600; color: var(--sm-color-sapphire-400); text-transform: uppercase; white-space: nowrap; }
-    .filter-field { flex: 1; min-width: 200px; }
-    .filter-sm { max-width: 160px; }
-    .clear-btn { color: var(--sm-color-text-muted); font-size: 0.8rem; white-space: nowrap; }
+    .search-field {
+      position: relative; flex: 1; max-width: 400px;
+      .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--sm-color-text-muted); pointer-events: none; }
+      .premium-input {
+        width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: white; font-size: 0.9rem; transition: all 0.2s;
+        &:focus { border-color: var(--sm-color-sapphire-400); background: rgba(255,255,255,0.08); outline: none; box-shadow: 0 0 0 4px rgba(var(--sm-rgb-sapphire-400), 0.1); }
+      }
+    }
+    .filter-select { width: 220px; font-size: 0.85rem; }
+    .clear-btn { color: var(--sm-color-sapphire-400); font-size: 0.8rem; font-weight: 600; white-space: nowrap; &:hover { color: var(--sm-color-sapphire-300); } }
 
     /* Tabla */
     .table-card { border: none; overflow: hidden; padding: 0; }
@@ -224,14 +225,9 @@ import { LucideAngularModule, Building2, Mail, Phone, MapPin, ShieldAlert, Searc
       }
     }
 
-    .loading-state { padding: 6rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--sm-color-text-soft); }
     .error-state { padding: 2rem; text-align: center; color: #e74c3c; }
-    .empty-state { padding: 4rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--sm-color-text-muted); }
 
     mat-paginator { background: transparent; }
-
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(var(--sm-rgb-sapphire-400), 0.2); border-top: 3px solid var(--sm-color-sapphire-400); border-radius: 50%; animation: spin 0.8s linear infinite; }
   `]
 })
 export class WorkshopManagementPage {
@@ -240,20 +236,22 @@ export class WorkshopManagementPage {
   private snackBar = inject(MatSnackBar);
 
   readonly workshopIcon = Building2;
+  readonly wrenchIcon = Wrench;
   readonly mailIcon = Mail;
   readonly phoneIcon = Phone;
   readonly mapIcon = MapPin;
   readonly alertIcon = ShieldAlert;
   readonly filterIcon = Filter;
   readonly refreshIcon = RefreshCw;
+  readonly searchIcon = Search;
 
   displayedColumns = ['nombre', 'contacto', 'ubicacion', 'estado'];
 
-  // Estado de filtros y paginación
-  searchQuery = '';
-  filterEstado = '';
-  pageSize = 10;
-  pageIndex = 0;
+  // Estado de filtros y paginación (Signals para reactividad)
+  searchQuery = signal('');
+  filterEstado = signal('');
+  pageSize = signal(10);
+  pageIndex = signal(0);
 
   workshopsQuery = injectQuery(() => ({
     queryKey: ['admin-workshops'],
@@ -264,17 +262,17 @@ export class WorkshopManagementPage {
   filteredWorkshops = computed(() => {
     let data = this.workshopsQuery.data() || [];
     
-    if (this.searchQuery) {
-      const q = this.searchQuery.toLowerCase();
+    if (this.searchQuery()) {
+      const q = this.searchQuery().toLowerCase();
       data = data.filter(w => 
         w.nombre.toLowerCase().includes(q) || 
         w.nit.toLowerCase().includes(q)
       );
     }
 
-    if (this.filterEstado === 'activo') {
+    if (this.filterEstado() === 'activo') {
       data = data.filter(w => w.is_active);
-    } else if (this.filterEstado === 'suspendido') {
+    } else if (this.filterEstado() === 'suspendido') {
       data = data.filter(w => !w.is_active);
     }
 
@@ -283,8 +281,8 @@ export class WorkshopManagementPage {
 
   // Paginación reactiva
   pagedWorkshops = computed(() => {
-    const start = this.pageIndex * this.pageSize;
-    return this.filteredWorkshops().slice(start, start + this.pageSize);
+    const start = this.pageIndex() * this.pageSize();
+    return this.filteredWorkshops().slice(start, start + this.pageSize());
   });
 
   statusMutation = injectMutation(() => ({
@@ -303,18 +301,18 @@ export class WorkshopManagementPage {
   }));
 
   onFilterChange() {
-    this.pageIndex = 0; // Resetear a la primera página al filtrar
+    this.pageIndex.set(0); // Resetear a la primera página al filtrar
   }
 
   onPageChange(event: PageEvent) {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
   }
 
   clearFilters() {
-    this.searchQuery = '';
-    this.filterEstado = '';
-    this.pageIndex = 0;
+    this.searchQuery.set('');
+    this.filterEstado.set('');
+    this.pageIndex.set(0);
   }
 
   toggleStatus(id: string) {

@@ -6,6 +6,7 @@ import { AuthService } from '../../data-access/auth.service';
 import { injectMutation } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login-page',
@@ -47,7 +48,7 @@ export class LoginComponent {
       this.authStore.loginSuccess(response.user, response.access_token);
       this.router.navigate(['/identity/home']);
     },
-    onError: (error: any) => {
+    onError: (error: HttpErrorResponse) => {
       const message = error.error?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
       this.snackBar.open(message, 'Cerrar', { duration: 5000 });
     }

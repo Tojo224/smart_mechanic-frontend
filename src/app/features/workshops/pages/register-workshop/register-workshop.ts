@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkshopForm } from '../../components/workshop-form/workshop-form';
 import { TallerCreate, TallerResponse } from '@core/models/workshops.model';
@@ -6,18 +6,20 @@ import { WorkshopsService } from '../../data-access/workshops.service';
 import { injectMutation, injectQuery, injectQueryClient } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { PageHeaderComponent } from '@shared/ui';
+import { Building2 } from 'lucide-angular';
 
 @Component({
   selector: 'app-register-workshop-page',
-  standalone: true,
-  imports: [CommonModule, WorkshopForm, MatSnackBarModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, WorkshopForm, MatSnackBarModule, PageHeaderComponent],
   template: `
     <div class="page-container">
-      <header class="page-header">
-        <h1>Mi Taller</h1>
-        <p>Gestiona la información de tu taller mecánico en la plataforma.</p>
-      </header>
+      <app-page-header 
+        title="Registrar mi Taller" 
+        subtitle="Completa la información para afiliar tu establecimiento a la red de Smart Mechanic."
+        [icon]="workshopIcon">
+      </app-page-header>
 
       @if (myWorkshopQuery.isLoading()) {
         <div class="loading-state">Cargando información...</div>
@@ -77,11 +79,6 @@ import { Router } from '@angular/router';
       padding: 2rem;
       max-width: 900px;
       margin: 0 auto;
-    }
-    .page-header {
-      margin-bottom: 2rem;
-      h1 { margin: 0; font-size: 2rem; color: var(--sm-color-text-title); }
-      p { margin: 0.5rem 0 0; color: var(--sm-color-text-soft); }
     }
     .card-container {
       position: relative;
@@ -222,7 +219,7 @@ import { Router } from '@angular/router';
 export class RegisterWorkshop {
   private workshopsService = inject(WorkshopsService);
   private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
+  readonly workshopIcon = Building2;
   private queryClient = injectQueryClient();
 
   editMode = signal(false);
