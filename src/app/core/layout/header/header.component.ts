@@ -30,7 +30,7 @@ import { LogOut, LucideAngularModule } from 'lucide-angular';
       <div class="header-actions">
         <!-- Info del usuario logueado -->
         @if (authStore.isAuthenticated()) {
-          <span class="user-name">{{ authStore.user()?.name }}</span>
+          <span class="user-name">{{ authStore.user()?.nombre }}</span>
         }
 
         <!-- Botón de Logout -->

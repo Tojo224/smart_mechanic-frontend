@@ -1,43 +1,65 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthStore } from '../../state/auth.store';
-import { User } from '../../schemas/auth.schema';
 import { LoginFormComponent, LoginCredentials } from '../../components/login-form/login-form.component';
+import { AuthService } from '../../data-access/auth.service';
+import { injectMutation } from '@tanstack/angular-query-experimental';
+import { lastValueFrom } from 'rxjs';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [LoginFormComponent],
+  imports: [LoginFormComponent, MatSnackBarModule],
   template: `
-    <app-login-form (onSubmitCredentials)="iniciarSesion($event)"></app-login-form>
-  `
+    <div style="position: relative;">
+      @if (loginMutation.isPending()) {
+        <div class="loading-overlay">Cargando...</div>
+      }
+      <app-login-form (onSubmitCredentials)="iniciarSesion($event)"></app-login-form>
+    </div>
+  `,
+  styles: [`
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      backdrop-filter: blur(4px);
+    }
+  `]
 })
 export class LoginComponent {
   public authStore = inject(AuthStore);
   private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
+  loginMutation = injectMutation(() => ({
+    mutationFn: (credentials: LoginCredentials) => lastValueFrom(this.authService.login(credentials)),
+    onSuccess: (response) => {
+      this.authService.saveAuthData(response);
+      this.authStore.loginSuccess(response.user, response.access_token);
+      this.router.navigate(['/identity/home']);
+    },
+    onError: (error: any) => {
+      const message = error.error?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+      this.snackBar.open(message, 'Cerrar', { duration: 5000 });
+    }
+  }));
 
   constructor() {
-    // Si ya está autenticado, no debería ver el login
     if (this.authStore.isAuthenticated()) {
       this.router.navigate(['/identity/home']);
     }
   }
 
-  // La lógica pura reside aquí, la interfaz visual ni se entera
   iniciarSesion(credentials: LoginCredentials) {
-    const userName = credentials.email.split('@')[0] || 'Nuevo Usuario';
-
-    const user: User = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      name: userName,
-      email: credentials.email,
-      role: 'ADMIN', // En el futuro se obtendrá del JWT
-    };
-
-    // Puedes usar la propiedad credentials.rememberMe para decidir cómo guardar el token
-    console.log('Recordar sesión marcado como:', credentials.rememberMe);
-
-    this.authStore.loginSuccess(user, 'dummy.jwt.token');
-    this.router.navigate(['/identity/home']);
+    this.loginMutation.mutate(credentials);
   }
 }

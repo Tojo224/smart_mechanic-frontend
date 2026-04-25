@@ -1,0 +1,51 @@
+<form [formGroup]="workshopForm" (ngSubmit)="onSubmit()" class="workshop-form">
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nombre del Taller</mat-label>
+    <input matInput formControlName="nombre" placeholder="Ej: Taller Central">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>NIT</mat-label>
+    <input matInput formControlName="nit" placeholder="Ej: 1234567-8">
+  </mat-form-field>
+
+  <div class="form-row">
+    <mat-form-field appearance="outline">
+      <mat-label>Teléfono</mat-label>
+      <input matInput formControlName="telefono" placeholder="Ej: 71234567">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="taller@ejemplo.com">
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Dirección</mat-label>
+    <input matInput formControlName="direccion" placeholder="Ej: Av. Principal #123">
+  </mat-form-field>
+
+  <div class="map-container">
+    <p class="map-hint">Haz clic en el mapa para marcar la ubicación del taller:</p>
+    <div id="map" class="leaflet-map"></div>
+  </div>
+
+  <div class="form-row">
+    <mat-form-field appearance="outline">
+      <mat-label>Latitud</mat-label>
+      <input matInput type="number" formControlName="latitud" readonly>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Longitud</mat-label>
+      <input matInput type="number" formControlName="longitud" readonly>
+    </mat-form-field>
+  </div>
+
+  <div class="form-actions">
+    <button mat-flat-button color="primary" type="submit" [disabled]="workshopForm.invalid">
+      Registrar Taller
+    </button>
+  </div>
+</form>

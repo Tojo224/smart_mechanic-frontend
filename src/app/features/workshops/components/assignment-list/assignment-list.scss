@@ -1,0 +1,32 @@
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  background: transparent;
+}
+
+.mat-mdc-header-cell {
+  color: var(--sm-color-text-title) !important;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(var(--sm-rgb-slate-400), 0.2);
+}
+
+.mat-mdc-cell {
+  color: var(--sm-color-text-main) !important;
+  border-bottom: 1px solid rgba(var(--sm-rgb-slate-400), 0.1);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--sm-color-text-soft);
+}
+
+mat-chip {
+  --mdc-chip-label-text-color: white;
+  font-size: 0.75rem;
+  min-height: 24px;
+}

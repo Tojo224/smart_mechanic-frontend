@@ -16,49 +16,17 @@ export const financeRoutes: Routes = [
     loadComponent: loadDashboardLayoutComponent,
     children: [
       {
-        path: 'commissions',
-        data: {
-          placeholder: {
-            title: 'Comisiones (10%)',
-            description: 'Seguimiento y gestion de comisiones de la plataforma',
-            icon: '💰',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
-      },
-      {
-        path: 'payments',
-        data: {
-          placeholder: {
-            title: 'Gestion de Pagos',
-            description: 'Procesamiento y seguimiento de pagos',
-            icon: '💳',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
-      },
-      {
-        path: 'invoices',
-        data: {
-          placeholder: {
-            title: 'Facturacion',
-            description: 'Generacion y gestion de facturas electronicas',
-            icon: '🧾',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        path: 'dashboard',
+        loadComponent: () => import('./pages/dashboard-financiero/dashboard-financiero.page').then(m => m.DashboardFinancieroPage),
       },
       {
         path: 'reports',
-        data: {
-          placeholder: {
-            title: 'Reportes Financieros',
-            description: 'Analisis y reportes de desempeno economico',
-            icon: '📊',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        loadComponent: () => import('./pages/report-generator/report-generator.page').then(m => m.ReportGeneratorPage),
       },
+      {
+        path: 'process',
+        loadComponent: () => import('./pages/process-payment/process-payment').then(m => m.ProcessPayment),
+      }
     ],
   },
 ];

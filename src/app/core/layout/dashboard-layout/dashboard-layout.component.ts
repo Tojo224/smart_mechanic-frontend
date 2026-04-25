@@ -4,6 +4,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { SidebarComponent } from '@core/layout/sidebar/sidebar.component';
 import { HeaderComponent } from '@core/layout/header/header.component';
 import { AuthStore } from '@features/identity/auth/state/auth.store';
+import { NotificationService } from '@core/services/notification.service';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -95,6 +96,7 @@ import { AuthStore } from '@features/identity/auth/state/auth.store';
 export class DashboardLayoutComponent {
   private authStore = inject(AuthStore);
   private router = inject(Router);
+  private notificationService = inject(NotificationService);
 
   constructor() {
     // Guard inline: redirige si no hay sesión autenticada

@@ -1,0 +1,35 @@
+<div class="summary-container">
+  <div class="status-icon" [ngClass]="payment.estado_pago.toLowerCase()">
+    @if (payment.estado_pago === 'COMPLETADO') {
+      <mat-icon>check_circle</mat-icon>
+    } @else if (payment.estado_pago === 'PENDIENTE') {
+      <mat-icon>schedule</mat-icon>
+    } @else {
+      <mat-icon>error</mat-icon>
+    }
+  </div>
+
+  <h2>Pago {{ payment.estado_pago }}</h2>
+  
+  <div class="summary-details">
+    <div class="item">
+      <span>Monto</span>
+      <strong>BOB {{ payment.monto }}</strong>
+    </div>
+    <div class="item">
+      <span>Transacción ID</span>
+      <strong>{{ payment.transaccion_id || 'N/A' }}</strong>
+    </div>
+    <div class="item">
+      <span>Fecha</span>
+      <strong>{{ payment.fecha_pago | date:'medium' }}</strong>
+    </div>
+  </div>
+
+  @if (payment.qr_code_url) {
+    <div class="qr-section">
+      <p>Escanea este código para completar el pago:</p>
+      <img [src]="payment.qr_code_url" alt="QR Code" class="qr-img">
+    </div>
+  }
+</div>

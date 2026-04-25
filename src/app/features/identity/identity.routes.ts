@@ -28,6 +28,17 @@ export const identityRoutes: Routes = [
         loadComponent: () =>
           import('./home/pages/home/home.component').then(c => c.HomeComponent),
       },
+      {
+        path: 'profile',
+        data: {
+          placeholder: {
+            title: 'Mi Perfil',
+            description: 'Gestiona tu información personal y credenciales de acceso',
+            icon: '👤',
+          },
+        },
+        loadComponent: loadPlaceholderRoutePageComponent,
+      },
     ],
   },
 
@@ -38,25 +49,13 @@ export const identityRoutes: Routes = [
     children: [
       {
         path: 'companies',
-        data: {
-          placeholder: {
-            title: 'Gestion de Empresas',
-            description: 'Alta y administracion de empresas taller',
-            icon: '🏢',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        loadComponent: () =>
+          import('../workshops/pages/workshop-list/workshop-list.component').then(c => c.WorkshopListComponent),
       },
       {
         path: 'users',
-        data: {
-          placeholder: {
-            title: 'Gestion de Usuarios',
-            description: 'Administracion de usuarios y roles',
-            icon: '👤',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        loadComponent: () =>
+          import('./pages/user-management/user-management.component').then(c => c.UserManagementComponent),
       },
       {
         path: 'verification',

@@ -9,10 +9,11 @@ export interface HomeKpi {
 }
 
 export interface HomeQuickAction {
-  key: 'create-emergency' | 'view-reports' | 'manage-workshops' | 'open-settings';
+  key: string;
   label: string;
   icon: LucideIconData;
   description: string;
+  route?: string;        // ← ruta de navegación Angular
 }
 
 export interface HomeAlert {

@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
+  correo: string;
+  contrasena: string;
   rememberMe: boolean;
 }
 
@@ -22,8 +22,8 @@ export class LoginFormComponent {
 
   constructor(private fb: FormBuilder) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      correo: ['', [Validators.required, Validators.email]],
+      contrasena: ['', [Validators.required, Validators.minLength(6)]],
       rememberMe: [false]
     });
   }

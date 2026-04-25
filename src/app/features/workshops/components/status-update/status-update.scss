@@ -1,0 +1,19 @@
+.status-container {
+  padding: 1rem;
+  
+  h3 {
+    margin: 0 0 0.5rem;
+    color: var(--sm-color-text-title);
+  }
+
+  p {
+    margin-bottom: 1.5rem;
+    color: var(--sm-color-text-soft);
+  }
+}
+
+.status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

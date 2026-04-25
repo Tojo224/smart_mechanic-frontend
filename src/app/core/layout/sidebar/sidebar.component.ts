@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthStore } from '@features/identity/auth/state/auth.store';
 import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
@@ -9,12 +10,14 @@ import {
   Bot,
   Building2,
   Circle,
+  Home,
   LayoutDashboard,
   LucideAngularModule,
   LucideIconData,
   Menu,
   Radar,
   Shield,
+  User,
   Wallet,
   Wrench,
   X,
@@ -71,7 +74,7 @@ interface MenuItem {
 
       <!-- Menú con submenús usando MatExpansionPanel -->
       <mat-accordion class="sidebar-accordion" [multi]="true">
-        @for (item of menuItems; track item.label) {
+        @for (item of menuItems(); track item.label) {
           <mat-expansion-panel class="sidebar-panel">
             <mat-expansion-panel-header class="panel-header">
               <mat-panel-title class="panel-title">
@@ -91,9 +94,6 @@ interface MenuItem {
                   routerLinkActive="active-link"
                   class="sub-item"
                 >
-                  <span class="sub-dot" matListItemIcon aria-hidden="true">
-                    <lucide-icon [img]="subItemIcon" [size]="8" [strokeWidth]="3"></lucide-icon>
-                  </span>
                   <span matListItemTitle>{{ child.label }}</span>
                 </a>
               }
@@ -299,6 +299,7 @@ interface MenuItem {
   `]
 })
 export class SidebarComponent {
+  authStore = inject(AuthStore);
   isMobileMenuOpen = signal(false);
 
   protected readonly dashboardIcon = LayoutDashboard;
@@ -306,76 +307,113 @@ export class SidebarComponent {
   protected readonly menuIcon = Menu;
   protected readonly closeIcon = X;
 
-  menuItems: MenuItem[] = [
-    {
-      label: 'Onboarding y Gestión de Identidad',
-      icon: Building2,
-      children: [
-        { label: 'Empresas', path: '/identity/onboarding/companies' },
-        { label: 'Usuarios', path: '/identity/onboarding/users' },
-        { label: 'Verificación', path: '/identity/onboarding/verification' },
-        { label: 'Documentación', path: '/identity/onboarding/documentation' },
-      ],
-    },
-    {
-      label: 'Gestión de Emergencias y Solicitudes',
-      icon: Ambulance,
-      children: [
-        { label: 'Activas', path: '/emergencies/active' },
-        { label: 'Historial', path: '/emergencies/history' },
-        { label: 'Asignaciones', path: '/emergencies/assignments' },
-        { label: 'Estados', path: '/emergencies/statuses' },
-      ],
-    },
-    {
-      label: 'Monitoreo, Experiencia y Trazabilidad',
-      icon: Radar,
-      children: [
-        { label: 'Rastreo', path: '/monitoring/tracking' },
-        { label: 'Ubicaciones', path: '/monitoring/locations' },
-        { label: 'Calidad', path: '/monitoring/quality' },
-        { label: 'Experiencia del Cliente', path: '/monitoring/customer-experience' },
-      ],
-    },
-    {
-      label: 'Procesamiento Inteligente y Asignación',
-      icon: Bot,
-      children: [
-        { label: 'Asignación Automática', path: '/processing/auto-assignment' },
-        { label: 'Algoritmos', path: '/processing/algorithms' },
-        { label: 'Cola', path: '/processing/queue' },
-        { label: 'Reglas', path: '/processing/rules' },
-      ],
-    },
-    {
-      label: 'Operación de Talleres',
-      icon: Wrench,
-      children: [
-        { label: 'Servicios', path: '/workshops/services' },
-        { label: 'Equipo', path: '/workshops/team' },
-        { label: 'Calendario', path: '/workshops/calendar' },
-        { label: 'Disponibilidad', path: '/workshops/availability' },
-      ],
-    },
-    {
-      label: 'Administración de la Plataforma',
-      icon: Shield,
-      children: [
-        { label: 'Usuarios', path: '/admin/users' },
-        { label: 'Configuración', path: '/admin/settings' },
-        { label: 'Auditoría', path: '/admin/audit' },
-        { label: 'Integraciones', path: '/admin/integrations' },
-      ],
-    },
-    {
-      label: 'Monetización y Gestión Financiera',
-      icon: Wallet,
-      children: [
-        { label: 'Comisiones (10%)', path: '/finance/commissions' },
-        { label: 'Pagos', path: '/finance/payments' },
-        { label: 'Facturas', path: '/finance/invoices' },
-        { label: 'Reportes', path: '/finance/reports' },
-      ],
-    },
-  ];
+  // --- BLOQUE COMÚN ---
+  private readonly menuInicio: MenuItem = {
+    label: 'Inicio',
+    icon: Home,
+    path: '/identity/home'
+  };
+
+  // --- BLOQUES DE MENÚ PARA SUPERADMIN ---
+  private readonly menuAdminPlataforma: MenuItem = {
+    label: 'Administración de la Plataforma',
+    icon: Building2,
+    children: [
+      { label: 'Gestionar talleres registrados', path: '/monitoring/workshops' },
+      { label: 'Supervisar operaciones de la plataforma', path: '/monitoring/command-center' },
+      { label: 'Consultar bitácora / historial del sistema', path: '/monitoring/audit' },
+    ],
+  };
+
+  private readonly menuIdentidadSuper: MenuItem = {
+    label: 'Onboarding y Gestión de Identidad',
+    icon: User,
+    children: [
+      { label: 'Gestionar perfil (Usuarios)', path: '/identity/onboarding/users' },
+    ],
+  };
+
+  private readonly menuMonitoreoSuper: MenuItem = {
+    label: 'Monitoreo, Experiencia y Trazabilidad',
+    icon: Radar,
+    children: [
+      { label: 'Monitor en Tiempo Real', path: '/emergencies/active' },
+      { label: 'Consultar historial de servicios', path: '/monitoring/history' },
+    ],
+  };
+
+  private readonly menuFinanzasSuper: MenuItem = {
+    label: 'Monetización y Gestión Financiera',
+    icon: Wallet,
+    children: [
+      { label: 'Gestionar comisión del taller', path: '/finance/dashboard' },
+      { label: 'Generar reportes', path: '/finance/reports' },
+    ],
+  };
+
+  // --- BLOQUES DE MENÚ PARA ADMIN TALLER ---
+  private readonly menuIdentidadTaller: MenuItem = {
+    label: 'Onboarding y Gestión de Identidad',
+    icon: User,
+    children: [
+      { label: 'Gestionar perfil', path: '/identity/home/profile' },
+      { label: 'Gestionar usuarios de taller', path: '/identity/onboarding/users' },
+      { label: 'Registrar taller', path: '/workshops/register' },
+    ],
+  };
+
+  private readonly menuOperacionTaller: MenuItem = {
+    label: 'Operación de Talleres',
+    icon: Wrench,
+    children: [
+      { label: 'Visualizar solicitudes', path: '/workshops/assignments' },
+      { label: 'Gestionar técnicos y disponibilidad', path: '/workshops/team' },
+    ],
+  };
+
+  private readonly menuMonitoreoTaller: MenuItem = {
+    label: 'Monitoreo, Experiencia y Trazabilidad',
+    icon: Radar,
+    children: [
+      { label: 'Monitor de Incidentes', path: '/emergencies/active' },
+      { label: 'Consultar historial de servicios', path: '/monitoring/history' },
+    ],
+  };
+
+  private readonly menuFinanzasTaller: MenuItem = {
+    label: 'Monetización y Gestión Financiera',
+    icon: Wallet,
+    children: [
+      { label: 'Gestionar comisión del taller', path: '/finance/dashboard' },
+      { label: 'Generar reportes', path: '/finance/reports' },
+    ],
+  };
+
+  // Computamos los menús basándonos en el rol del usuario
+  menuItems = computed(() => {
+    const user = this.authStore.user();
+    const role = user?.rol_nombre || '';
+
+    if (role === 'admin_taller') {
+      return [
+        this.menuInicio,
+        this.menuIdentidadTaller,
+        this.menuOperacionTaller,
+        this.menuMonitoreoTaller,
+        this.menuFinanzasTaller
+      ];
+    }
+
+    if (role === 'superadmin') {
+      return [
+        this.menuInicio,
+        this.menuAdminPlataforma,
+        this.menuIdentidadSuper,
+        this.menuMonitoreoSuper,
+        this.menuFinanzasSuper
+      ];
+    }
+
+    return [];
+  });
 }

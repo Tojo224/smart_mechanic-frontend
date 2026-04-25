@@ -1,0 +1,27 @@
+<form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" class="payment-form">
+  <div class="form-header">
+    <h3>Detalles del Pago</h3>
+    <p>ID Incidente: <strong>{{ incidentId }}</strong></p>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Monto a Pagar (BOB)</mat-label>
+    <input matInput type="number" formControlName="monto" placeholder="Ej: 500">
+    <span matPrefix>$&nbsp;</span>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Método de Pago</mat-label>
+    <mat-select formControlName="metodo_pago">
+      @for (method of methods; track method.value) {
+        <mat-option [value]="method.value">{{ method.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <div class="form-actions">
+    <button mat-flat-button color="primary" type="submit" [disabled]="paymentForm.invalid" class="pay-btn">
+      Procesar Pago
+    </button>
+  </div>
+</form>

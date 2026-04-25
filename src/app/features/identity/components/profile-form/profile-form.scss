@@ -1,0 +1,26 @@
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.readonly-info {
+  background: var(--sm-color-gunmetal-825, #232831);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--sm-color-border-metal, #334155);
+  p {
+    margin: 4px 0;
+    color: var(--sm-color-text-main, #e2e8f0);
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.submit-button {
+  margin-top: 8px;
+  padding: 8px;
+}

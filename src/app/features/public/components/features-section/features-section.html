@@ -1,0 +1,18 @@
+<section class="features-section">
+  <div class="features-header">
+    <h2 class="section-title">Tecnología al servicio de tu tranquilidad</h2>
+    <p class="section-subtitle">Descubre por qué Smart Mechanic es la solución definitiva para emergencias viales.</p>
+  </div>
+  
+  <div class="features-grid">
+    @for (feature of features; track feature.title) {
+      <div class="feature-card">
+        <div class="icon-container" [ngClass]="'color-' + feature.color">
+          <lucide-icon [img]="feature.icon" [size]="24"></lucide-icon>
+        </div>
+        <h3 class="feature-title">{{ feature.title }}</h3>
+        <p class="feature-desc">{{ feature.description }}</p>
+      </div>
+    }
+  </div>
+</section>

@@ -45,11 +45,10 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'identity/auth',
-    pathMatch: 'full'
+    loadChildren: () => import('./features/public/public.routes').then(m => m.publicRoutes)
   },
   {
     path: '**',
-    redirectTo: 'identity/auth'
+    redirectTo: ''
   }
 ];

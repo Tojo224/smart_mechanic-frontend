@@ -7,8 +7,16 @@
     </div>
 
     <div class="hero-status">
-      <span class="status-dot"></span>
-      Operacion estable
+      @if (isSyncing()) {
+        <div class="sync-indicator">
+          <span class="mini-spinner"></span>
+          Sincronizando...
+        </div>
+      }
+      <div class="status-wrap">
+        <span class="status-dot"></span>
+        Operación estable
+      </div>
     </div>
   </header>
 
@@ -44,14 +52,23 @@
       </ul>
     </article>
 
-    <article class="panel alerts-panel">
-      <h2>Alertas Operativas</h2>
-      <div class="alerts-list">
-        @for (alert of alerts(); track alert.title) {
-          <div class="alert-item" [class.high]="alert.level === 'high'" [class.medium]="alert.level === 'medium'" [class.low]="alert.level === 'low'">
-            <p class="alert-title">{{ alert.title }}</p>
-            <p class="alert-description">{{ alert.description }}</p>
+    <article class="panel activity-panel">
+      <h2>Actividad Reciente (Últimos 5)</h2>
+      <div class="activity-list">
+        @for (inc of incidents(); track inc.id_incidente) {
+          <div class="activity-item">
+            <div class="activity-meta">
+              <span class="activity-status" [class]="inc.estado_incidente"></span>
+              <span class="activity-id">ID: {{ inc.id_incidente.substring(0,8) }}</span>
+            </div>
+            <p class="activity-summary">{{ inc.resumen_ia || 'Sin resumen disponible' }}</p>
+            <div class="activity-footer">
+              <span class="activity-priority">{{ inc.prioridad_incidente }}</span>
+              <span class="activity-state">{{ inc.estado_incidente.replace('_', ' ') }}</span>
+            </div>
           </div>
+        } @empty {
+          <p class="empty-msg">No hay actividad reciente.</p>
         }
       </div>
     </article>

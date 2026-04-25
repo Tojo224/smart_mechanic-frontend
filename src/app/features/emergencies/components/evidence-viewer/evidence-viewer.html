@@ -1,0 +1,28 @@
+<div class="evidence-container">
+  <h3>Evidencias (Imágenes y Audio)</h3>
+  
+  <div class="evidence-grid">
+    @for (ev of evidences; track ev.id_evidencia) {
+      <div class="evidence-item">
+        @if (ev.tipo_archivo === 'IMAGEN') {
+          <img [src]="ev.url_archivo" [alt]="ev.id_evidencia" class="evidence-img">
+        } @else {
+          <div class="audio-card">
+            <mat-icon>mic</mat-icon>
+            <audio controls class="audio-player">
+              <source [src]="ev.url_archivo" type="audio/mpeg">
+              Tu navegador no soporta el elemento de audio.
+            </audio>
+          </div>
+        }
+        <span class="evidence-date">{{ ev.fecha_subida | date:'short' }}</span>
+      </div>
+    }
+  </div>
+
+  @if (evidences.length === 0) {
+    <div class="empty-state">
+      <p>No se han subido evidencias para este incidente.</p>
+    </div>
+  }
+</div>

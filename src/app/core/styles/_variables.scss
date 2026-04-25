@@ -1,0 +1,46 @@
+// Design Tokens - Smart Mechanic
+:root {
+  // Gunmetal Palette (Backgrounds)
+  --sm-color-gunmetal-950: #0d0f12;
+  --sm-color-gunmetal-900: #121417;
+  --sm-color-gunmetal-850: #1c1f24;
+  --sm-color-gunmetal-825: #232831;
+  --sm-color-gunmetal-800: #2a2d34;
+
+  // Sapphire Palette (Accents)
+  --sm-color-sapphire-700: #1e3a8a;
+  --sm-color-sapphire-600: #1d4ed8;
+  --sm-color-sapphire-500: #2563eb;
+  --sm-color-sapphire-450: #1e40af;
+  --sm-color-sapphire-400: #3b82f6;
+  --sm-color-sapphire-300: #60a5fa;
+  --sm-color-sapphire-100: #dbeafe;
+  --sm-color-sapphire-050: #bfdbfe;
+
+  // Text Colors
+  --sm-color-text-main: #e2e8f0;
+  --sm-color-text-soft: #94a3b8;
+  --sm-color-text-muted: #64748b;
+  --sm-color-text-title: #f8fafc;
+  --sm-color-text-label: #cbd5e1;
+  --sm-color-white: #ffffff;
+
+  // Semantic Colors
+  --sm-color-success: #22c55e;
+  --sm-color-danger: #ef4444;
+  --sm-color-warning: #f59e0b;
+  --sm-color-info: #3b82f6;
+
+  // Borders & Inputs
+  --sm-color-border: rgba(148, 163, 184, 0.12);
+  --sm-color-input-bg: #0f1115;
+
+  // RGB versions for opacity control
+  --sm-rgb-sapphire-500: 37 99 235;
+  --sm-rgb-black: 0 0 0;
+  --sm-rgb-white: 255 255 255;
+  --sm-rgb-slate-400: 148 163 184;
+
+  // Typography
+  --sm-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}

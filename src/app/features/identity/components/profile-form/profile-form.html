@@ -1,0 +1,21 @@
+<form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+  
+  <div class="readonly-info" *ngIf="user">
+    <p><strong>Correo:</strong> {{ user.correo }}</p>
+    <p><strong>Rol:</strong> {{ user.rol_nombre }}</p>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nombre Completo</mat-label>
+    <input matInput type="text" formControlName="nombre">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Teléfono</mat-label>
+    <input matInput type="tel" formControlName="telefono">
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" type="submit" [disabled]="profileForm.invalid || !profileForm.dirty" class="submit-button">
+    Actualizar Perfil
+  </button>
+</form>

@@ -16,49 +16,21 @@ export const monitoringRoutes: Routes = [
     loadComponent: loadDashboardLayoutComponent,
     children: [
       {
-        path: 'tracking',
-        data: {
-          placeholder: {
-            title: 'Rastreo y Trazabilidad',
-            description: 'Seguimiento en tiempo real de talleres y vehiculos',
-            icon: '📍',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        path: 'command-center',
+        loadComponent: () => import('./pages/command-center/command-center.page').then(m => m.CommandCenterPage),
       },
       {
-        path: 'locations',
-        data: {
-          placeholder: {
-            title: 'Gestion de Ubicaciones',
-            description: 'Administracion de zonas de cobertura y servicio',
-            icon: '🗺️',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        path: 'workshops',
+        loadComponent: () => import('./pages/workshop-management/workshop-management.page').then(m => m.WorkshopManagementPage),
       },
       {
-        path: 'quality',
-        data: {
-          placeholder: {
-            title: 'Control de Calidad',
-            description: 'Estandares y metricas de calidad del servicio',
-            icon: '🏆',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        path: 'history',
+        loadComponent: () => import('./pages/global-history/global-history.page').then(m => m.GlobalHistoryPage),
       },
       {
-        path: 'customer-experience',
-        data: {
-          placeholder: {
-            title: 'Experiencia del Cliente',
-            description: 'Monitoreo de satisfaccion y experiencia final',
-            icon: '😊',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
-      },
+        path: 'audit',
+        loadComponent: () => import('./pages/audit-logs/audit-logs.page').then(m => m.AuditLogsPage),
+      }
     ],
   },
 ];

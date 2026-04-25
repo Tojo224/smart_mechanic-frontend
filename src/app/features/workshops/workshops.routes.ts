@@ -16,6 +16,14 @@ export const workshopsRoutes: Routes = [
     loadComponent: loadDashboardLayoutComponent,
     children: [
       {
+        path: 'register',
+        loadComponent: () => import('./pages/register-workshop/register-workshop').then(m => m.RegisterWorkshop),
+      },
+      {
+        path: 'assignments',
+        loadComponent: () => import('./pages/workshop-assignments/workshop-assignments').then(m => m.WorkshopAssignments),
+      },
+      {
         path: 'services',
         data: {
           placeholder: {
@@ -28,14 +36,7 @@ export const workshopsRoutes: Routes = [
       },
       {
         path: 'team',
-        data: {
-          placeholder: {
-            title: 'Equipo del Taller',
-            description: 'Gestion del personal tecnico del taller',
-            icon: '👷',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        loadComponent: () => import('./pages/manage-team/manage-team.component').then(m => m.ManageTeamComponent),
       },
       {
         path: 'calendar',

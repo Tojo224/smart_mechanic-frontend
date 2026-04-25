@@ -1,0 +1,48 @@
+// Mixins para diseño premium
+
+@mixin glass-card {
+  background: rgba(var(--sm-rgb-slate-400), 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--sm-rgb-slate-400), 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin metallic-gradient {
+  background: radial-gradient(
+    circle at 50% -25%,
+    var(--sm-color-gunmetal-800) 0%,
+    var(--sm-color-gunmetal-950) 75%
+  );
+}
+
+@mixin sapphire-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--sm-color-sapphire-500),
+    var(--sm-color-sapphire-700)
+  );
+}
+
+// Scrollbar personalizado
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--sm-color-gunmetal-800);
+    border-radius: 10px;
+    &:hover {
+      background: var(--sm-color-gunmetal-825);
+    }
+  }
+}

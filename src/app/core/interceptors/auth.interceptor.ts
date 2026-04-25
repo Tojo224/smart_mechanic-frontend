@@ -1,5 +1,6 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { environment } from '@env/environment';
 import { StorageService } from '../services/storage.service';
 
 /**
@@ -12,8 +13,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Extraemos el JWT del almacenamiento seguro
   const token = storageService.getItem('access_token');
 
-  // Aplicar cabecera siempre que el usuario tenga un token y esté llamando a una /api
-  const isApiRequest = req.url.startsWith('/api');
+  // Aplicar cabecera siempre que el usuario tenga un token y esté llamando a nuestra API
+  const isApiRequest = req.url.includes(environment.apiUrl) || req.url.startsWith('/api');
 
   if (token && isApiRequest) {
     req = req.clone({

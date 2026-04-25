@@ -1,0 +1,37 @@
+<div class="details-card">
+  <div class="card-header">
+    <h3>Detalle del Incidente</h3>
+    <mat-chip-set>
+      <mat-chip [color]="getPriorityColor(incident.prioridad_incidente)" selected>
+        {{ incident.prioridad_incidente }}
+      </mat-chip>
+      <mat-chip>
+        {{ incident.estado_incidente }}
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+
+  <div class="details-grid">
+    <div class="detail-item">
+      <span class="label">ID de Emergencia:</span>
+      <span class="value">{{ incident.id_incidente }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Vehículo:</span>
+      <span class="value">{{ incident.id_vehiculo }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Teléfono de Contacto:</span>
+      <span class="value">{{ incident.telefono || 'No disponible' }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="label">Fecha:</span>
+      <span class="value">{{ incident.fecha_reporte | date:'medium' }}</span>
+    </div>
+  </div>
+
+  <div class="description-section">
+    <h4>Descripción del Usuario</h4>
+    <p>{{ incident.descripcion || 'Sin descripción adicional.' }}</p>
+  </div>
+</div>

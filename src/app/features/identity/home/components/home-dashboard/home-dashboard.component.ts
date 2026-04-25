@@ -17,6 +17,8 @@ export class HomeDashboardComponent {
   highlights = input<string[]>([]);
   alerts = input<HomeAlert[]>([]);
   quickActions = input<HomeQuickAction[]>([]);
+  incidents = input<any[]>([]);
+  isSyncing = input<boolean>(false);
 
   quickActionSelected = output<HomeQuickAction>();
 

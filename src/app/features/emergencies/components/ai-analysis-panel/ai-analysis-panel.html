@@ -1,0 +1,19 @@
+<div class="analysis-panel">
+  <div class="panel-header">
+    <mat-icon class="ai-icon">psychology</mat-icon>
+    <h3>Resumen Consolidado de IA</h3>
+  </div>
+
+  @if (analysis) {
+    <div class="analysis-content">
+      <div class="section">
+        <p class="consolidated-text">{{ analysis }}</p>
+      </div>
+    </div>
+  } @else {
+    <div class="processing-state">
+      <mat-icon class="spin">autorenew</mat-icon>
+      <p>Generando resumen de IA...</p>
+    </div>
+  }
+</div>

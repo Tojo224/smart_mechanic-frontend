@@ -16,15 +16,12 @@ export const emergenciesRoutes: Routes = [
     loadComponent: loadDashboardLayoutComponent,
     children: [
       {
+        path: 'details/:id',
+        loadComponent: () => import('./pages/incident-details/incident-details').then(m => m.IncidentDetails),
+      },
+      {
         path: 'active',
-        data: {
-          placeholder: {
-            title: 'Emergencias Activas',
-            description: 'Solicitudes de asistencia en tiempo real',
-            icon: '🚨',
-          },
-        },
-        loadComponent: loadPlaceholderRoutePageComponent,
+        loadComponent: () => import('./pages/global-monitor/global-monitor.component').then(m => m.GlobalMonitorComponent),
       },
       {
         path: 'history',
