@@ -36,18 +36,15 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
   ],
   template: `
     <div class="kanban-page">
-      <!-- Audio para alertas (Nuevas Solicitudes) -->
-      <audio #alertSound src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
-
       <div class="page-container">
         <app-page-header 
-          title="Asignaciones de Auxilio" 
-          subtitle="Gestiona los incidentes asignados a tu taller y el despacho de técnicos."
+          title="Panel de Auxilios" 
+          subtitle="Monitoreo de incidentes en tiempo real y despacho inteligente de técnicos."
           [icon]="assignmentsIcon">
           <div actions>
-            <button mat-stroked-button class="refresh-btn" (click)="assignmentsQuery.refetch()">
+            <button mat-flat-button class="refresh-btn-premium" (click)="assignmentsQuery.refetch()">
               <lucide-icon [img]="refreshIcon" [size]="16"></lucide-icon>
-              Actualizar
+              Sincronizar
             </button>
           </div>
         </app-page-header>
@@ -98,31 +95,34 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
                     <div class="card-body">
                       <div class="id-row">
                         <span class="id-label">#{{ inc.id_incidente.substring(0,8) }}</span>
-                        <span class="time-ago">Recién llegado</span>
+                        <span class="time-tag">NUEVA</span>
                       </div>
                       
                       <div class="ia-summary">
                         <div class="ia-header">
                           <lucide-icon [img]="messageIcon" [size]="12"></lucide-icon>
-                          Resumen IA
+                          ANÁLISIS INTELIGENTE
                         </div>
-                        <p>{{ inc.resumen_ia }}</p>
+                        <p>{{ inc.resumen_ia || 'Analizando evidencias...' }}</p>
                       </div>
 
                       <div class="client-info">
                         <div class="info-item">
                           <lucide-icon [img]="phoneIcon" [size]="12"></lucide-icon>
-                          {{ inc.telefono || 'Sin teléfono' }}
+                          {{ inc.telefono || 'Sin contacto' }}
                         </div>
                       </div>
                     </div>
 
                     <div class="card-footer">
-                      <mat-form-field appearance="outline" class="full-width-select">
-                        <mat-select #techSelect placeholder="Asignar técnico...">
+                      <mat-form-field appearance="outline" class="full-width-select sm-dark-field">
+                        <mat-select #techSelect placeholder="Seleccionar Técnico">
                           @for (tech of techsQuery.data(); track tech.id_tecnico) {
                             <mat-option [value]="tech.id_tecnico" [disabled]="!tech.estado">
-                              {{ tech.nombre }} {{ !tech.estado ? '(Ocupado)' : '' }}
+                              <div class="tech-option">
+                                <span>{{ tech.nombre }}</span>
+                                @if (!tech.estado) { <span class="busy-tag">Ocupado</span> }
+                              </div>
                             </mat-option>
                           }
                         </mat-select>
@@ -132,9 +132,15 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
                         <button mat-flat-button color="primary" 
                                 [disabled]="!techSelect.value || acceptMutation.isPending()"
                                 (click)="onAccept(inc.id_incidente, techSelect.value)">
-                          ACEPTAR
+                          <div class="btn-content">
+                            @if (acceptMutation.isPending()) {
+                              <lucide-icon [img]="refreshIcon" class="spin" [size]="14"></lucide-icon>
+                            } @else {
+                              <span>ACEPTAR</span>
+                            }
+                          </div>
                         </button>
-                        <button mat-button color="warn" (click)="onReject(inc.id_incidente)">
+                        <button mat-button class="reject-btn" (click)="onReject(inc.id_incidente)">
                           RECHAZAR
                         </button>
                       </div>
@@ -143,8 +149,8 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
                 } @empty {
                   <app-empty-state 
                     [icon]="assignmentsIcon" 
-                    title="Sin solicitudes" 
-                    message="No hay incidentes pendientes en este momento.">
+                    title="Todo despejado" 
+                    message="No hay incidentes pendientes. Buen trabajo.">
                   </app-empty-state>
                 }
               </div>
@@ -244,37 +250,38 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
   `,
   styles: [`
     .kanban-page { 
-      height: calc(100vh - 64px); display: flex; flex-direction: column; background: #0b0f1a; 
+      height: calc(100vh - 64px); display: flex; flex-direction: column; background: radial-gradient(circle at top right, #0f172a, #020617); 
     }
     .page-container { padding: 2rem; max-width: 1800px; margin: 0 auto; animation: fadeIn 0.4s ease-out; display: flex; flex-direction: column; height: 100%; }
 
-    /* Filtros */
     .kanban-filters {
-      margin: 1rem 0; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1.5rem;
-      .search-box { display: flex; align-items: center; gap: 0.75rem; flex: 1; max-width: 400px; background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-        input { background: none; border: none; color: white; outline: none; font-size: 0.85rem; width: 100%; }
+      margin: 1rem 0 2rem; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1.5rem;
+      border-radius: 20px;
+      .search-box { display: flex; align-items: center; gap: 0.75rem; flex: 1; max-width: 400px; background: rgba(255,255,255,0.03); padding: 0.6rem 1.2rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08);
+        input { background: none; border: none; color: white; outline: none; font-size: 0.9rem; width: 100%; &::placeholder { color: rgba(255,255,255,0.3); } }
+        lucide-icon { color: var(--sm-color-sapphire-400); }
       }
       .filter-select { height: 48px; width: 150px; font-size: 0.85rem; }
       .board-stats { margin-left: auto; display: flex; gap: 1.5rem; .stat { font-size: 0.8rem; color: var(--sm-color-text-soft); b { color: var(--sm-color-sapphire-400); margin-right: 0.2rem; } } }
     }
 
-    /* Board */
     .kanban-board {
-      flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; overflow: hidden;
+      flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; overflow: hidden; padding-bottom: 1rem;
     }
 
     .kanban-column {
-      display: flex; flex-direction: column; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden;
+      display: flex; flex-direction: column; background: rgba(255,255,255,0.015); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden;
       
       .column-header {
-        padding: 1rem; display: flex; align-items: center; gap: 0.6rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);
-        h2 { margin: 0; font-size: 0.85rem; font-weight: 700; color: white; flex: 1; text-transform: uppercase; letter-spacing: 0.05em; }
-        .count { background: var(--sm-color-sapphire-600); color: white; padding: 0.1rem 0.6rem; border-radius: 10px; font-size: 0.7rem; font-weight: 800; }
+        padding: 1.25rem; display: flex; align-items: center; gap: 0.8rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);
+        h2 { margin: 0; font-size: 0.8rem; font-weight: 800; color: white; flex: 1; text-transform: uppercase; letter-spacing: 0.1em; }
+        .count { padding: 0.2rem 0.75rem; border-radius: 10px; font-size: 0.75rem; font-weight: 900; background: rgba(255,255,255,0.05); color: var(--sm-color-text-soft); }
       }
 
-      &.incoming .column-header { color: #e74c3c; .count { background: #e74c3c; } }
-      &.on-way .column-header { color: #3498db; .count { background: #3498db; } }
-      &.in-progress .column-header { color: #f1c40f; .count { background: #f1c40f; } }
+      &.incoming { border-top: 4px solid #f87171; .column-header lucide-icon { color: #f87171; } .count { background: rgba(248,113,113,0.1); color: #f87171; } }
+      &.on-way { border-top: 4px solid #60a5fa; .column-header lucide-icon { color: #60a5fa; } .count { background: rgba(96,165,250,0.1); color: #60a5fa; } }
+      &.in-progress { border-top: 4px solid #fbbf24; .column-header lucide-icon { color: #fbbf24; } .count { background: rgba(251,191,36,0.1); color: #fbbf24; } }
+      &.done { border-top: 4px solid #34d399; .column-header lucide-icon { color: #34d399; } .count { background: rgba(52,211,153,0.1); color: #34d399; } }
     }
 
     .column-content {
@@ -283,14 +290,11 @@ import { IncidentResponse, TecnicoResponse } from '@core/models/workshops.model'
       &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     }
 
-    /* Cards */
     .kanban-card {
-      background: #161e2e; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); position: relative; transition: all 0.2s;
-      &:hover { border-color: var(--sm-color-sapphire-500); transform: translateY(-2px); }
-      &.new-alert { animation: slideIn 0.3s ease-out; border-top: 3px solid #e74c3c; }
-      &.border-blue { border-top: 3px solid #3498db; }
-      &.border-purple { border-top: 3px solid #9b59b6; }
-      &.card-done { opacity: 0.6; border-top: 3px solid #2ecc71; }
+      background: rgba(30, 41, 59, 0.4); border-radius: 18px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(8px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      &:hover { border-color: rgba(var(--sm-rgb-sapphire-400), 0.4); transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.5); }
+      &.new-alert { animation: slideIn 0.4s ease-out; box-shadow: 0 0 20px -5px rgba(248,113,113,0.2); }
+      &.card-done { opacity: 0.6; }
     }
 
     .card-priority {
@@ -396,11 +400,15 @@ export class WorkshopAssignments {
   }
 
   filteredPending = computed(() => 
-    this.applyBaseFilters(this.assignmentsQuery.data() || []).filter(i => i.estado_incidente === 'ASIGNADO')
+    this.applyBaseFilters(this.assignmentsQuery.data() || []).filter(i => 
+      ['TALLER_ASIGNADO', 'ASIGNADO', 'ANALIZADO'].includes(i.estado_incidente)
+    )
   );
 
   filteredEnCamino = computed(() => 
-    this.applyBaseFilters(this.assignmentsQuery.data() || []).filter(i => ['ACEPTADO', 'EN_CAMINO'].includes(i.estado_incidente))
+    this.applyBaseFilters(this.assignmentsQuery.data() || []).filter(i => 
+      ['ACEPTADO', 'EN_CAMINO', 'TECNICO_ASIGNADO'].includes(i.estado_incidente)
+    )
   );
 
   filteredInProgress = computed(() => 
@@ -415,24 +423,7 @@ export class WorkshopAssignments {
     this.filteredEnCamino().length + this.filteredInProgress().length
   );
 
-  // Alerta sonora para nuevas solicitudes
-  private lastCount = 0;
-  constructor() {
-    effect(() => {
-      const pending = this.filteredPending().length;
-      if (pending > this.lastCount) {
-        this.playAlert();
-        this.snackBar.open('🚨 NUEVA SOLICITUD DE AUXILIO', 'Ver', { duration: 5000, panelClass: ['snack-important'] });
-      }
-      this.lastCount = pending;
-    });
-  }
-
-  playAlert() {
-    if (this.alertSound?.nativeElement) {
-      this.alertSound.nativeElement.play().catch(e => console.log('Audio blocked:', e));
-    }
-  }
+  constructor() {}
 
   // Mutaciones
   acceptMutation = injectMutation(() => ({

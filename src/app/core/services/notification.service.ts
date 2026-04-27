@@ -1,7 +1,9 @@
-import { Injectable, inject, effect } from '@angular/core';
+import { Injectable, inject, effect, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { AuthStore } from '@features/identity/auth/state/auth.store';
 import { injectQueryClient } from '@tanstack/angular-query-experimental';
 import { environment } from '@env/environment';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root'
@@ -9,13 +11,22 @@ import { environment } from '@env/environment';
 export class NotificationService {
   private authStore = inject(AuthStore);
   private queryClient = injectQueryClient();
+  private snackBar = inject(MatSnackBar);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+  
   private socket: WebSocket | null = null;
+  private alertAudio: any = null;
 
   constructor() {
+    if (this.isBrowser) {
+      this.alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    }
+
     // Re-conectar automáticamente si el usuario cambia (login/logout)
     effect(() => {
       const token = this.authStore.accessToken();
-      if (token) {
+      if (token && this.isBrowser) {
         this.connect(token);
       } else {
         this.disconnect();
@@ -24,12 +35,9 @@ export class NotificationService {
   }
 
   private connect(token: string) {
-    if (this.socket) return;
+    if (this.socket || !this.isBrowser) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-    // Extraemos solo el host (ej. localhost:8000) de la apiUrl para el WS
-    // Esto evita que el WS intente conectar a /api/v1/ws si la apiUrl tiene prefijo
     const url = new URL(environment.apiUrl);
     const host = url.host;
     
@@ -40,14 +48,13 @@ export class NotificationService {
         const message = JSON.parse(event.data);
         console.log('🔔 Notificación recibida:', message);
         this.handleMessage(message);
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error al parsear mensaje WS:', e);
       }
     };
 
     this.socket.onclose = () => {
       this.socket = null;
-      // Reintento de conexión después de 5 segundos
       setTimeout(() => {
         const currentToken = this.authStore.accessToken();
         if (currentToken) this.connect(currentToken);
@@ -63,18 +70,26 @@ export class NotificationService {
   }
 
   private handleMessage(message: any) {
-    // Aquí es donde ocurre la magia: invalidamos las queries afectadas
-    // para que TanStack Query refresque la data al INSTANTE
-    
-    // 1. Refrescar asignaciones del taller
+    // 1. Invalidar queries para refrescar data
     this.queryClient.invalidateQueries({ queryKey: ['assignments'] });
-    
-    // 2. Refrescar monitor global del admin
     this.queryClient.invalidateQueries({ queryKey: ['global-incidents'] });
-    
-    // 3. Refrescar incidentes del home
     this.queryClient.invalidateQueries({ queryKey: ['home-recent-incidents'] });
 
-    // Opcional: Podríamos disparar un sonido aquí si quisiéramos ser más específicos
+    // 2. Alerta visual y sonora si es una nueva emergencia
+    if (message.type === 'NEW_INCIDENT') {
+      this.playAlert();
+      this.snackBar.open('🚨 NUEVA SOLICITUD DE AUXILIO RECIBIDA', 'Ver', {
+        duration: 10000,
+        panelClass: ['snack-important'],
+        horizontalPosition: 'end',
+        verticalPosition: 'top'
+      });
+    }
+  }
+
+  private playAlert() {
+    if (this.alertAudio) {
+      this.alertAudio.play().catch((e: any) => console.log('Audio blocked by browser:', e));
+    }
   }
 }
