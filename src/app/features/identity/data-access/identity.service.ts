@@ -28,4 +28,11 @@ export class IdentityService {
   toggleUserStatus(userId: string): Observable<UserResponse> {
     return this.http.patch<UserResponse>(`${this.API_URL}/users/${userId}/status`, {});
   }
+
+  /**
+   * Crea un nuevo usuario (Uso administrativo)
+   */
+  createUser(userData: any): Observable<UserResponse> {
+    return this.http.post<UserResponse>(`${this.API_URL}/users/`, userData);
+  }
 }

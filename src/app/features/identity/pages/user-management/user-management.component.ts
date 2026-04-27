@@ -17,8 +17,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { LucideAngularModule, User, UserPlus, Filter, Search, ShieldCheck, Mail, Briefcase, RefreshCw } from 'lucide-angular';
 import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
+import { UserFormDialogComponent } from '../../components/user-form-dialog/user-form-dialog.component';
 
 @Component({
   selector: 'app-user-management',
@@ -37,6 +39,7 @@ import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from 
     MatPaginatorModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatDialogModule,
     LucideAngularModule,
     PageHeaderComponent,
     LoadingStateComponent,
@@ -49,7 +52,7 @@ import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from 
         [subtitle]="pageSubtitle()"
         [icon]="userIcon">
         <div actions>
-          <button mat-flat-button color="primary" class="btn-add">
+          <button mat-flat-button color="primary" class="btn-add" (click)="openCreateDialog()">
             <lucide-icon [img]="userPlusIcon" [size]="18"></lucide-icon>
             Nuevo Usuario
           </button>
@@ -303,6 +306,7 @@ export class UserManagementComponent {
   private workshopsService = inject(WorkshopsService);
   private authStore = inject(AuthStore);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   private queryClient = injectQueryClient();
 
   // Iconos
@@ -380,6 +384,31 @@ export class UserManagementComponent {
       this.snackBar.open('Error al cambiar el estado del usuario', 'Cerrar', { duration: 4000 });
     }
   }));
+
+  createMutation = injectMutation(() => ({
+    mutationFn: (userData: any) => lastValueFrom(this.identityService.createUser(userData)),
+    onSuccess: (newUser) => {
+      this.snackBar.open(`Usuario ${newUser.nombre} creado con éxito`, 'Cerrar', { duration: 3000 });
+      this.queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      const msg = error.error?.detail || 'Error al crear el usuario';
+      this.snackBar.open(msg, 'Cerrar', { duration: 5000 });
+    }
+  }));
+
+  openCreateDialog() {
+    const dialogRef = this.dialog.open(UserFormDialogComponent, {
+      width: '600px',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.createMutation.mutate(result);
+      }
+    });
+  }
 
   onWorkshopFilterChange(tallerId: string | null) {
     this.selectedWorkshopId.set(tallerId);
