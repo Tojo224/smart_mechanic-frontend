@@ -439,7 +439,9 @@ export class ReportGeneratorPage {
       return lastValueFrom(this.reportService.generateAiReport(prompt, sessionId));
     },
     onSuccess: (blob) => {
-      const url = window.URL.createObjectURL(blob);
+      // Forzar el tipo de blob a Excel para asegurar la descarga correcta
+      const excelBlob = new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(excelBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `Reporte_IA_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`;
