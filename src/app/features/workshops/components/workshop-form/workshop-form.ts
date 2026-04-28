@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, OnChanges, OnDestroy, PLATFORM_ID, inject, input, output } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnChanges, OnDestroy, PLATFORM_ID, ViewChild, inject, input, output } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -31,6 +31,7 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
     longitud: [0, [Validators.required, Validators.min(-180), Validators.max(180)]]
   });
 
+  @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLDivElement>;
   private map: L.Map | undefined;
   private marker: L.Marker | undefined;
   private L: typeof L | undefined;
@@ -70,25 +71,27 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   private initMap() {
-    if (!this.L || this.map) return;
-
+    if (!this.L || this.map || !this.mapContainer) return;
+    
     const data = this.initialData();
     const defaultLat = data?.latitud || -16.5000;
     const defaultLng = data?.longitud || -68.1193;
 
-    this.map = this.L.map('map', {
+    const map = this.L.map(this.mapContainer.nativeElement, {
       center: [defaultLat, defaultLng],
       zoom: 15
     });
+    this.map = map;
 
     this.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
-    }).addTo(this.map);
+    }).addTo(map);
 
     const iconRetinaUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png';
     const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
     const shadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png';
+    
     const iconDefault = this.L.icon({
       iconRetinaUrl,
       iconUrl,
@@ -102,10 +105,10 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
     this.L.Marker.prototype.options.icon = iconDefault;
 
     if (data?.latitud != null && data?.longitud != null) {
-      this.marker = this.L.marker([data.latitud, data.longitud]).addTo(this.map);
+      this.marker = this.L.marker([data.latitud, data.longitud]).addTo(map);
     }
 
-    this.map.on('click', (e: L.LeafletMouseEvent) => {
+    map.on('click', (e: L.LeafletMouseEvent) => {
       if (!this.L || !this.map) return;
 
       const lat = e.latlng.lat;
@@ -127,7 +130,7 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
 
     // Forzar renderizado de tiles en contenedores dinámicos
     setTimeout(() => {
-      this.map?.invalidateSize();
+      map.invalidateSize();
     }, 200);
   }
 

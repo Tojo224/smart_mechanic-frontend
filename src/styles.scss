@@ -47,3 +47,29 @@ body {
   background-color: var(--sm-color-gunmetal-900) !important;
   border: 1px solid var(--sm-color-border) !important;
 }
+
+// Leaflet Global Overrides para Producción (Vercel)
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  background-color: var(--sm-color-gunmetal-950) !important;
+  z-index: 1;
+}
+
+// Estilos para controles de Leaflet en modo oscuro
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+  background-color: var(--sm-color-gunmetal-800) !important;
+  color: var(--sm-color-text-main) !important;
+  border-color: var(--sm-color-border) !important;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--sm-color-border) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: var(--sm-color-text-muted) !important;
+  font-size: 0.6rem !important;
+}

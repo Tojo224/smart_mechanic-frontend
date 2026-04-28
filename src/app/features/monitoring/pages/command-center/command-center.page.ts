@@ -117,7 +117,7 @@ Chart.register(...registerables);
                 <span class="legend-item"><span class="dot high"></span>Alta</span>
               </div>
             </div>
-            <div id="heatmap" class="heatmap-container"></div>
+            <div #heatmapContainer class="heatmap-container"></div>
           </mat-card>
         </div>
       }
@@ -179,6 +179,7 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   private monitoringService = inject(MonitoringService);
   
   @ViewChild('performanceChart') performanceChartRef!: ElementRef;
+  @ViewChild('heatmapContainer') heatmapContainer!: ElementRef;
   private chart: Chart | null = null;
   private map: L.Map | null = null;
 
@@ -200,17 +201,17 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   }));
 
   constructor() {
-    // Usamos un efecto reactivo en lugar de una suscripción manual para inicializar componentes externos
+    // Usamos un efecto reactivo para inicializar componentes cuando los datos y la librería estén listos
     effect(() => {
-      if (isPlatformBrowser(this.platformId) && this.statsQuery.status() === 'success') {
-        const stats = this.statsQuery.data();
-        if (stats) {
-          // Pequeño delay para asegurar que el view esté listo si es la primera carga
-          setTimeout(() => {
-            this.initChart(stats);
-            this.initMap(stats);
-          }, 100);
-        }
+      const stats = this.statsQuery.data();
+      const isBrowser = isPlatformBrowser(this.platformId);
+      
+      if (isBrowser && stats && this.L) {
+        // Pequeño delay para asegurar que el DOM esté estable
+        setTimeout(() => {
+          this.initChart(stats);
+          this.initMap(stats);
+        }, 100);
       }
     });
   }
@@ -293,7 +294,7 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   }
 
   private initMap(stats: GlobalStats) {
-    if (!this.L) return;
+    if (!this.L || !this.heatmapContainer) return;
     const leafletWithHeat = this.L as LeafletWithHeat;
 
     if (this.map) {
@@ -301,7 +302,7 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
       this.map = null;
     }
 
-    this.map = this.L.map('heatmap', {
+    this.map = this.L.map(this.heatmapContainer.nativeElement, {
       zoomControl: false,
       scrollWheelZoom: false
     }).setView([-17.7833, -63.1821], 13); // Santa Cruz
@@ -318,5 +319,10 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
       maxZoom: 17,
       gradient: { 0.2: '#3498db', 0.5: '#2ecc71', 0.8: '#f1c40f', 1: '#e74c3c' }
     }).addTo(this.map);
+
+    // Forzar recalcular tamaño para evitar pantalla negra en contenedores dinámicos
+    setTimeout(() => {
+      this.map?.invalidateSize();
+    }, 200);
   }
 }
