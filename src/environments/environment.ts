@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8000/api/v1'
+  apiUrl: 'https://backend_smart_mechanic.fournext.me/api/v1'
 };

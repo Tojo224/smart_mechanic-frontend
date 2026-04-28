@@ -1,6 +1,7 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FinanceService, PaymentResponse } from '../../data-access/finance.service';
+import { WorkshopsService } from '@features/workshops/data-access/workshops.service';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
@@ -99,7 +100,7 @@ import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from 
             <div class="kpi-content">
               <span class="kpi-label">{{ isSuperAdmin() ? 'Crecimiento de Red' : 'Ingresos Netos' }}</span>
               <h2 class="kpi-value text-emerald">
-                {{ isSuperAdmin() ? '+15 Talleres' : (stats().totalIngresos - stats().totalComisiones | currency) }}
+                {{ isSuperAdmin() ? '+' + (workshopsQuery.data()?.length || 0) + ' Talleres' : (stats().totalIngresos - stats().totalComisiones | currency) }}
               </h2>
               <div class="kpi-trend up">
                 <lucide-icon [img]="trendUpIcon" [size]="12"></lucide-icon>
@@ -282,6 +283,7 @@ import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from 
 })
 export class DashboardFinancieroPage {
   private financeService = inject(FinanceService);
+  private workshopsService = inject(WorkshopsService);
   private authStore = inject(AuthStore);
 
   // Iconos
@@ -302,6 +304,12 @@ export class DashboardFinancieroPage {
     queryKey: ['financial-payments'],
     queryFn: () => lastValueFrom(this.financeService.getPayments()),
     refetchInterval: 60000
+  }));
+
+  workshopsQuery = injectQuery(() => ({
+    queryKey: ['admin-workshops-count'],
+    queryFn: () => lastValueFrom(this.workshopsService.getAllWorkshops()),
+    enabled: this.isSuperAdmin()
   }));
 
   // Estadísticas Calculadas en Caliente
