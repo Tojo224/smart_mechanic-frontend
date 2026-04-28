@@ -1,0 +1,36 @@
+<mat-card class="sm-glass-card ai-assistant-card">
+  <div class="ai-header">
+    <div class="ai-badge">
+      <lucide-icon [img]="sparklesIcon" [size]="14"></lucide-icon>
+      <span>Soporte IA</span>
+    </div>
+    <h4>Asistente SQL Natural</h4>
+  </div>
+  
+  <p class="ai-desc">Solicita reportes complejos escribiendo como hablas. El motor traducirá tu pedido a SQL.</p>
+  
+  <mat-form-field appearance="outline" class="full-width">
+    <textarea 
+      matInput 
+      [ngModel]="prompt()" 
+      (ngModelChange)="prompt.set($event)" 
+      placeholder="Ej: Dame los incidentes del mes de abril para el Taller El Rayo McQueen..."
+      rows="4"
+      [disabled]="isGenerating()"></textarea>
+  </mat-form-field>
+
+  <button 
+    mat-flat-button 
+    class="ai-btn"
+    [disabled]="!prompt() || isGenerating()"
+    (click)="onGenerate()"
+  >
+    @if (isGenerating()) {
+      <mat-spinner diameter="20"></mat-spinner>
+      <span>Generando...</span>
+    } @else {
+      <lucide-icon [img]="botIcon" [size]="18"></lucide-icon>
+      Generar con IA
+    }
+  </button>
+</mat-card>

@@ -56,7 +56,10 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
   async ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
       this.L = await import('leaflet');
-      this.initMap();
+      // Timeout para asegurar que el contenedor #map tenga dimensiones reales en el DOM
+      setTimeout(() => {
+        this.initMap();
+      }, 100);
     }
   }
 
@@ -121,6 +124,11 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
       this.workshopForm.get('latitud')?.markAsTouched();
       this.workshopForm.get('longitud')?.markAsTouched();
     });
+
+    // Forzar renderizado de tiles en contenedores dinámicos
+    setTimeout(() => {
+      this.map?.invalidateSize();
+    }, 200);
   }
 
   private updateMapMarker() {

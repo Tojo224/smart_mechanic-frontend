@@ -24,12 +24,13 @@ import {
   FileText, 
   ShieldCheck, 
   Wrench, 
-  Filter,
   CheckCircle2,
   AlertTriangle,
   History
 } from 'lucide-angular';
 import { PageHeaderComponent, LoadingStateComponent } from '@shared/ui';
+import { AiReportAssistantComponent } from '../../components/ai-report-assistant/ai-report-assistant';
+import { injectMutation } from '@tanstack/angular-query-experimental';
 import { format } from 'date-fns';
 
 @Component({
@@ -49,13 +50,14 @@ import { format } from 'date-fns';
     MatSnackBarModule,
     LucideAngularModule,
     PageHeaderComponent,
-    LoadingStateComponent
+    LoadingStateComponent,
+    AiReportAssistantComponent
   ],
   template: `
     <div class="page-container">
       <app-page-header 
-        title="Generador de Reportes Financieros" 
-        subtitle="Analiza el rendimiento, comisiones y transacciones con filtros avanzados."
+        title="Generador de Reportes" 
+        subtitle="Analiza el rendimiento, comisiones y transacciones con filtros avanzados o Inteligencia Artificial."
         [icon]="historyIcon">
       </app-page-header>
 
@@ -126,6 +128,11 @@ import { format } from 'date-fns';
               </button>
             </div>
           </mat-card>
+
+          <app-ai-report-assistant
+            [isGenerating]="aiMutation.isPending()"
+            (generate)="onAiRequest($event)">
+          </app-ai-report-assistant>
         </aside>
 
         <!-- Panel de Vista Previa / Explicación -->
@@ -424,5 +431,31 @@ export class ReportGeneratorPage {
     } finally {
       this.isGenerating.set(false);
     }
+  }
+
+  aiMutation = injectMutation(() => ({
+    mutationFn: (prompt: string) => {
+      const sessionId = this.authStore.user()?.id_usuario || 'temp-session';
+      return lastValueFrom(this.reportService.generateAiReport(prompt, sessionId));
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Reporte_IA_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      this.snackBar.open('✅ Reporte IA descargado con éxito', 'Cerrar', { duration: 3000 });
+    },
+    onError: (error) => {
+      console.error('Error IA Report:', error);
+      this.snackBar.open('Error al conectar con el asistente de IA.', 'Cerrar', { duration: 5000 });
+    }
+  }));
+
+  onAiRequest(prompt: string) {
+    this.aiMutation.mutate(prompt);
   }
 }

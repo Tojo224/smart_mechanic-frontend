@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -7,8 +9,25 @@ import * as XLSX from 'xlsx';
   providedIn: 'root'
 })
 export class ReportService {
+  private http = inject(HttpClient);
 
   constructor() { }
+
+  /**
+   * Envía una solicitud al motor de IA en n8n para generar un reporte basado en lenguaje natural.
+   */
+  generateAiReport(chatInput: string, sessionId: string) {
+    return this.http.post(environment.aiReportUrl, {
+      action: 'sendMessage',
+      sessionId,
+      chatInput
+    }, { 
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+    });
+  }
 
   /**
    * Genera un reporte en PDF con una tabla estilizada.

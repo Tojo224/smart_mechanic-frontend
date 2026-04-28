@@ -4,5 +4,14 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/ai-report": {
+    "target": "https://josealbertof2004.app.n8n.cloud",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/ai-report": "/webhook/890d6115-a4f8-45aa-95bf-ccbae7c65728/chat"
+    },
+    "logLevel": "debug"
   }
 }
