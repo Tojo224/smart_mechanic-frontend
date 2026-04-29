@@ -218,7 +218,11 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.L = await import('leaflet');
+      const Leaflet = await import('leaflet');
+      this.L = (Leaflet as any).default || Leaflet;
+      
+      // Plugin de calor necesita el objeto global L en algunos entornos
+      (window as any).L = this.L;
       await import('leaflet.heat');
     }
   }
@@ -307,8 +311,8 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
       scrollWheelZoom: false
     }).setView([-17.7833, -63.1821], 13); // Santa Cruz
 
-    this.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; CARTO'
+    this.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
     }).addTo(this.map);
 
     this.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
@@ -323,6 +327,6 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
     // Forzar recalcular tamaño para evitar pantalla negra en contenedores dinámicos
     setTimeout(() => {
       this.map?.invalidateSize();
-    }, 200);
+    }, 500);
   }
 }

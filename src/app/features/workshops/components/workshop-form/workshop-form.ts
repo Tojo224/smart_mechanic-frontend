@@ -62,10 +62,11 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
 
   async ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
-      this.L = await import('leaflet');
+      const Leaflet = await import('leaflet');
+      this.L = (Leaflet as any).default || Leaflet;
       setTimeout(() => {
         this.initMap();
-      }, 300); // Aumentado el timeout para mayor seguridad
+      }, 500);
     }
   }
 
