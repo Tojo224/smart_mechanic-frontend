@@ -9,8 +9,15 @@ import type * as L from 'leaflet';
 
 @Component({
   selector: 'app-workshop-form',
+  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule, MatFormFieldModule],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    MatInputModule, 
+    MatButtonModule, 
+    MatFormFieldModule
+  ],
   templateUrl: './workshop-form.html',
   styleUrls: ['./workshop-form.scss']
 })
@@ -48,7 +55,6 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
         latitud: data.latitud || 0,
         longitud: data.longitud || 0
       });
-      // En modo edición, el NIT no se debería poder cambiar
       this.workshopForm.get('nit')?.disable();
       this.updateMapMarker();
     }
@@ -57,10 +63,9 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
   async ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
       this.L = await import('leaflet');
-      // Timeout para asegurar que el contenedor #map tenga dimensiones reales en el DOM
       setTimeout(() => {
         this.initMap();
-      }, 100);
+      }, 300); // Aumentado el timeout para mayor seguridad
     }
   }
 
@@ -74,45 +79,33 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
     if (!this.L || this.map || !this.mapContainer) return;
     
     const data = this.initialData();
-    const defaultLat = data?.latitud || -16.5000;
-    const defaultLng = data?.longitud || -68.1193;
+    const defaultLat = data?.latitud || -17.7833;
+    const defaultLng = data?.longitud || -63.1821;
 
-    const map = this.L.map(this.mapContainer.nativeElement, {
-      center: [defaultLat, defaultLng],
-      zoom: 15
-    });
-    this.map = map;
+    this.map = this.L.map(this.mapContainer.nativeElement).setView([defaultLat, defaultLng], 15);
 
     this.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
-    }).addTo(map);
+    }).addTo(this.map);
 
-    const iconRetinaUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png';
-    const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
-    const shadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png';
-    
+    // Configuración de iconos (usando cdnjs para evitar problemas de assets locales)
     const iconDefault = this.L.icon({
-      iconRetinaUrl,
-      iconUrl,
-      shadowUrl,
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
+      iconAnchor: [12, 41]
     });
     this.L.Marker.prototype.options.icon = iconDefault;
 
     if (data?.latitud != null && data?.longitud != null) {
-      this.marker = this.L.marker([data.latitud, data.longitud]).addTo(map);
+      this.marker = this.L.marker([data.latitud, data.longitud]).addTo(this.map);
     }
 
-    map.on('click', (e: L.LeafletMouseEvent) => {
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
       if (!this.L || !this.map) return;
-
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
+      const { lat, lng } = e.latlng;
 
       if (this.marker) {
         this.marker.setLatLng(e.latlng);
@@ -120,24 +113,18 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
         this.marker = this.L.marker(e.latlng).addTo(this.map);
       }
 
-      this.workshopForm.patchValue({
-        latitud: lat,
-        longitud: lng
-      });
-      this.workshopForm.get('latitud')?.markAsTouched();
-      this.workshopForm.get('longitud')?.markAsTouched();
+      this.workshopForm.patchValue({ latitud: lat, longitud: lng });
     });
 
-    // Forzar renderizado de tiles en contenedores dinámicos
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    // Forzar redimensión
+    setTimeout(() => this.map?.invalidateSize(), 500);
   }
 
   private updateMapMarker() {
-    const data = this.initialData();
-    if (this.L && this.map && data?.latitud != null && data?.longitud != null) {
-      const latlng: L.LatLngTuple = [data.latitud, data.longitud];
+    const lat = this.workshopForm.get('latitud')?.value;
+    const lng = this.workshopForm.get('longitud')?.value;
+    if (this.L && this.map && lat && lng) {
+      const latlng: L.LatLngTuple = [lat, lng];
       this.map.setView(latlng, 15);
       if (this.marker) {
         this.marker.setLatLng(latlng);
@@ -149,9 +136,7 @@ export class WorkshopForm implements AfterViewInit, OnDestroy, OnChanges {
 
   onSubmit() {
     if (this.workshopForm.valid) {
-      // Necesitamos devolver el NIT también aunque esté deshabilitado para el payload
-      const rawValue = this.workshopForm.getRawValue();
-      this.save.emit(rawValue);
+      this.save.emit(this.workshopForm.getRawValue());
     } else {
       this.workshopForm.markAllAsTouched();
     }
