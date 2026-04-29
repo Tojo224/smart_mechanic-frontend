@@ -1,4 +1,6 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EmergenciesService } from '../../data-access/emergencies.service';
@@ -15,6 +17,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { LucideAngularModule, Activity, Map as MapIcon, Shield, Radio, Search, Filter, Layers, Navigation, Siren, CheckCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-angular';
 import { PageHeaderComponent, LoadingStateComponent, EmptyStateComponent } from '@shared/ui';
+import { PushNotificationService } from '@core/services/push-notification.service';
+
 
 @Component({
   selector: 'app-global-monitor',
@@ -345,12 +349,23 @@ export class GlobalMonitorComponent {
   pageSize          = signal(10);
   pageIndex         = signal(0);
 
-  // ── Query (auto-refresh cada 30s) ─────────────────────────────────────────
+  private pushService = inject(PushNotificationService);
+
+  // ── Query (Ahora reactivo a Push Notifications) ──────────────────────────
   incidentsQuery = injectQuery(() => ({
     queryKey: ['global-incidents'],
     queryFn:  () => lastValueFrom(this.emergenciesService.getAllIncidents()),
-    refetchInterval: 30000,
+    // Ya no necesitamos refetchInterval porque escuchamos Push
   }));
+
+  constructor() {
+    // Escuchamos notificaciones push para refrescar los datos en tiempo real
+    this.pushService.message$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.incidentsQuery.refetch();
+      });
+  }
 
   // ── Stats calculadas ──────────────────────────────────────────────────────
   allData          = computed(() => (this.incidentsQuery.data()) ?? []);

@@ -1,4 +1,4 @@
-import { Component, inject, AfterViewInit, ElementRef, ViewChild, OnDestroy, PLATFORM_ID, effect } from '@angular/core';
+import { Component, inject, AfterViewInit, ElementRef, ViewChild, OnDestroy, PLATFORM_ID, effect, DestroyRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MonitoringService } from '../../data-access/monitoring.service';
 import { injectQuery } from '@tanstack/angular-query-experimental';
@@ -7,9 +7,11 @@ import { MatCardModule } from '@angular/material/card';
 import { LucideAngularModule, Activity, Users, DollarSign, AlertTriangle, Map as MapIcon, TrendingUp, Info } from 'lucide-angular';
 import { Chart, registerables } from 'chart.js';
 import type * as L from 'leaflet';
-import { toObservable } from '@angular/core/rxjs-interop';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GlobalStats } from '../../models/monitoring.model';
 import { PageHeaderComponent, LoadingStateComponent } from '@shared/ui';
+import { PushNotificationService } from '@core/services/push-notification.service';
+
 
 type HeatPoint = [number, number, number?];
 type HeatLayerOptions = {
@@ -194,13 +196,22 @@ export class CommandCenterPage implements AfterViewInit, OnDestroy {
   readonly trendIcon = TrendingUp;
   readonly infoIcon = Info;
 
+  private pushService = inject(PushNotificationService);
+
   statsQuery = injectQuery(() => ({
     queryKey: ['global-stats'],
     queryFn: () => lastValueFrom(this.monitoringService.getGlobalStats()),
-    refetchInterval: 60000
+    // Ya no usamos refetchInterval de 60s, usamos Push
   }));
 
   constructor() {
+    // Escuchamos notificaciones push para refrescar los datos estratégicos
+    this.pushService.message$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.statsQuery.refetch();
+      });
+
     // Usamos un efecto reactivo para inicializar componentes cuando los datos y la librería estén listos
     effect(() => {
       const stats = this.statsQuery.data();

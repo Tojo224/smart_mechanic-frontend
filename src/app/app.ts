@@ -1,6 +1,7 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './features/identity/auth/state/auth.store';
+import { PushNotificationService } from '@core/services/push-notification.service';
 
 @Component({
   selector: 'app-root',
@@ -11,9 +12,20 @@ import { AuthStore } from './features/identity/auth/state/auth.store';
 })
 export class App implements OnInit {
   private authStore = inject(AuthStore);
+  private pushService = inject(PushNotificationService);
   protected readonly title = signal('taller-frontend');
+
+  constructor() {
+    // Cuando el usuario se autentique, solicitamos permiso para notificaciones
+    effect(() => {
+      if (this.authStore.isAuthenticated()) {
+        this.pushService.requestPermissionAndGetToken();
+      }
+    });
+  }
 
   ngOnInit() {
     this.authStore.init();
+    this.pushService.listenForMessages();
   }
 }

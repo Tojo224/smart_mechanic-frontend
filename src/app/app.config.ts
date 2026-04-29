@@ -9,6 +9,8 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideAngularQuery, QueryClient } from '@tanstack/angular-query-experimental';
+import { importProvidersFrom } from '@angular/core';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,6 +22,7 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([authInterceptor])
     ),
     provideAnimationsAsync(),                 // Necesario para Angular Material
-    provideAngularQuery(new QueryClient())    // Necesario para TanStack Query
+    provideAngularQuery(new QueryClient()),   // Necesario para TanStack Query
+    importProvidersFrom(MatSnackBarModule)    // Necesario para notificaciones Snackbar
   ]
 };
