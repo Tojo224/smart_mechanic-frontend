@@ -42,3 +42,10 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Secrets and Credentials
+.env
+.env.*
+environment.local.ts
+firebase-key.json
+*-firebase-adminsdk-*.json
