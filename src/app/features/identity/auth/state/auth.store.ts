@@ -24,18 +24,35 @@ export const AuthStore = signalStore(
   withState(initialState),
   withMethods((store, storageService = inject(StorageService)) => ({
     /**
-     * Se llama después de que TanStack Query (AuthService) termine exitosamente su mutación.
+     * Carga el estado inicial desde el almacenamiento persistente.
+     * Útil para sobrevivir a refrescos de página.
      */
+    init() {
+      const token = storageService.getItem('access_token');
+      const userData = storageService.getItem('user_data');
+      
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData);
+          patchState(store, { user, accessToken: token, isAuthenticated: true });
+        } catch (e) {
+          console.error('Error recuperando sesión:', e);
+          storageService.removeItem('access_token');
+          storageService.removeItem('user_data');
+        }
+      }
+    },
+
     loginSuccess(user: User, token: string) {
       patchState(store, { user, accessToken: token, isAuthenticated: true });
-      // Guardar el token de forma segura (Compatible con SSR y Node!)
       storageService.setItem('access_token', token);
+      storageService.setItem('user_data', JSON.stringify(user));
     },
     
     logout() {
       patchState(store, initialState);
-      // Limpiar al cerrar sesión
       storageService.removeItem('access_token');
+      storageService.removeItem('user_data');
     }
   }))
 );

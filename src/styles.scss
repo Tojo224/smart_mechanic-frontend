@@ -50,8 +50,8 @@ body {
 
 // Leaflet Global Overrides para Producción (Vercel)
 .leaflet-container {
-  height: 100% !important;
   width: 100% !important;
+  min-height: 300px;
   background-color: var(--sm-color-gunmetal-950) !important;
   z-index: 1;
 }

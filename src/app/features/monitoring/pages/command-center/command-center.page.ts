@@ -117,7 +117,7 @@ Chart.register(...registerables);
                 <span class="legend-item"><span class="dot high"></span>Alta</span>
               </div>
             </div>
-            <div #heatmapContainer class="heatmap-container"></div>
+            <div #heatmapContainer class="heatmap-container" ngSkipHydration></div>
           </mat-card>
         </div>
       }

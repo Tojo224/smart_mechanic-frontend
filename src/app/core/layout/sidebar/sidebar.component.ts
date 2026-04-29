@@ -392,9 +392,9 @@ export class SidebarComponent {
   // Computamos los menús basándonos en el rol del usuario
   menuItems = computed(() => {
     const user = this.authStore.user();
-    const role = user?.rol_nombre || '';
+    const role = (user?.rol_nombre || '').toLowerCase().trim();
 
-    if (role === 'admin_taller') {
+    if (role === 'admin_taller' || role === 'admin' || role === 'taller') {
       return [
         this.menuInicio,
         this.menuIdentidadTaller,
@@ -404,7 +404,7 @@ export class SidebarComponent {
       ];
     }
 
-    if (role === 'superadmin') {
+    if (role === 'superadmin' || role === 'admin_sistema' || role === 'root') {
       return [
         this.menuInicio,
         this.menuAdminPlataforma,
