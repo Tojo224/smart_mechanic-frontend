@@ -1,6 +1,5 @@
-// Importa los scripts necesarios para Firebase Messaging
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getMessaging, onBackgroundMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-sw.js";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -12,20 +11,17 @@ const firebaseConfig = {
   appId: "1:610969493592:web:4ec086bc1dac9cdb17aa2d"
 };
 
-// Inicializa Firebase en el Service Worker
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
 
-// Recupera una instancia de Firebase Messaging
-const messaging = firebase.messaging();
-
-// Manejador de mensajes en segundo plano
-messaging.onBackgroundMessage((payload) => {
+onBackgroundMessage(messaging, (payload) => {
   console.log('[firebase-messaging-sw.js] Recibido mensaje en segundo plano: ', payload);
 
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification?.title || 'Nueva Notificación';
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon.ico' // Puedes cambiar esto por una URL de icono real
+    body: payload.notification?.body || 'Tienes un nuevo mensaje.',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

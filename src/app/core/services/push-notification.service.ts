@@ -40,9 +40,18 @@ export class PushNotificationService {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        // Registro explícito del Service Worker para evitar AbortError en localhost
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        // Pequeño retraso para asegurar estabilidad en la carga
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Registro explícito con scope definido
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          type: 'module',
+          scope: '/'
+        });
         
+        // Esperar a que el service worker esté listo
+        await navigator.serviceWorker.ready;
+
         const token = await getToken(this.messaging, {
           vapidKey: environment.vapidKey,
           serviceWorkerRegistration: registration
